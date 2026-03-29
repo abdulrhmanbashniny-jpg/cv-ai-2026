@@ -14,7 +14,191 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_knowledge_base: {
+        Row: {
+          answer: string
+          category: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_logs: {
+        Row: {
+          consultation_id: string | null
+          created_at: string
+          id: string
+          message: string
+          role: string
+        }
+        Insert: {
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          role: string
+        }
+        Update: {
+          consultation_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_logs_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_requests: {
+        Row: {
+          company_name: string
+          contact_email: string
+          contact_person: string
+          contact_phone: string
+          created_at: string
+          hiring_needs: string
+          id: string
+          job_titles: string
+          reference_number: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_name: string
+          contact_email: string
+          contact_person: string
+          contact_phone: string
+          created_at?: string
+          hiring_needs: string
+          id?: string
+          job_titles: string
+          reference_number: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string
+          contact_person?: string
+          contact_phone?: string
+          created_at?: string
+          hiring_needs?: string
+          id?: string
+          job_titles?: string
+          reference_number?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      consultations: {
+        Row: {
+          ai_response: string | null
+          created_at: string
+          id: string
+          issue_category: string
+          needs_human_review: boolean
+          reference_number: string
+          status: string
+          summary: string | null
+          updated_at: string
+          visitor_name: string | null
+        }
+        Insert: {
+          ai_response?: string | null
+          created_at?: string
+          id?: string
+          issue_category: string
+          needs_human_review?: boolean
+          reference_number: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          visitor_name?: string | null
+        }
+        Update: {
+          ai_response?: string | null
+          created_at?: string
+          id?: string
+          issue_category?: string
+          needs_human_review?: boolean
+          reference_number?: string
+          status?: string
+          summary?: string | null
+          updated_at?: string
+          visitor_name?: string | null
+        }
+        Relationships: []
+      }
+      job_applications: {
+        Row: {
+          city: string
+          created_at: string
+          cv_drive_url: string | null
+          cv_url: string | null
+          department: string
+          full_name: string
+          id: string
+          phone: string
+          reference_number: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          cv_drive_url?: string | null
+          cv_url?: string | null
+          department: string
+          full_name: string
+          id?: string
+          phone: string
+          reference_number: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          cv_drive_url?: string | null
+          cv_url?: string | null
+          department?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          reference_number?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
