@@ -50,24 +50,24 @@ const Consultation = () => {
     const ref = generateRefNumber();
     setRefNumber(ref);
 
-    // Create consultation record
-    const { data, error } = await supabase
+    // Create consultation record - generate ID client-side to avoid SELECT RLS issue
+    const id = crypto.randomUUID();
+    const { error } = await supabase
       .from("consultations")
       .insert({
+        id,
         reference_number: ref,
         visitor_name: visitorName,
         issue_category: category,
         status: "open",
-      })
-      .select("id")
-      .single();
+      });
 
     if (error) {
       toast({ title: "خطأ", description: "حدث خطأ في إنشاء الاستشارة", variant: "destructive" });
       return;
     }
 
-    setConsultationId(data.id);
+    setConsultationId(id);
 
     const greeting: Msg = {
       role: "assistant",
@@ -170,15 +170,20 @@ const Consultation = () => {
         (m.content.includes("سأستشير") || m.content.includes("أعود إليك"))
     );
 
-    await supabase
-      .from("consultations")
-      .update({
-        status: "closed",
-        summary,
-        needs_human_review: needsReview,
-        ai_response: messages.filter((m) => m.role === "assistant").map((m) => m.content).join("\n---\n"),
-      })
-      .eq("id", consultationId);
+    // Use edge function to update (no UPDATE RLS policy for anon)
+    await supabase.functions.invoke("admin-data", {
+      body: {
+        action: "update",
+        table: "consultations",
+        id: consultationId,
+        data: {
+          status: "closed",
+          summary,
+          needs_human_review: needsReview,
+          ai_response: messages.filter((m) => m.role === "assistant").map((m) => m.content).join("\n---\n"),
+        },
+      },
+    });
 
     // Notify via Telegram
     try {
