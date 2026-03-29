@@ -117,6 +117,115 @@ serve(async (req) => {
       });
     }
 
+    // Test Google Drive
+    if (action === "test_drive") {
+      const { json_credentials, folder_id } = data || {};
+
+      // Validate JSON format
+      let creds: any;
+      try {
+        creds = typeof json_credentials === "string" ? JSON.parse(json_credentials) : json_credentials;
+        if (!creds.client_email || !creds.private_key || !creds.token_uri) {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid JSON: missing client_email, private_key, or token_uri" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch {
+        return new Response(JSON.stringify({ ok: false, error: "Invalid JSON format" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!folder_id) {
+        return new Response(JSON.stringify({ ok: false, error: "Folder ID is required" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      try {
+        // Build JWT for Google API
+        const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+        const now = Math.floor(Date.now() / 1000);
+        const claimSet = btoa(JSON.stringify({
+          iss: creds.client_email,
+          scope: "https://www.googleapis.com/auth/drive.file",
+          aud: creds.token_uri,
+          exp: now + 3600,
+          iat: now,
+        }));
+
+        // Import private key and sign JWT
+        const pemContent = creds.private_key.replace(/-----BEGIN PRIVATE KEY-----/g, "").replace(/-----END PRIVATE KEY-----/g, "").replace(/\s/g, "");
+        const binaryKey = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0));
+        const cryptoKey = await crypto.subtle.importKey("pkcs8", binaryKey, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+        const signatureInput = new TextEncoder().encode(`${header}.${claimSet}`);
+        const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
+        const encodedSig = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const jwt = `${header}.${claimSet}.${encodedSig}`;
+
+        // Exchange JWT for access token
+        const tokenRes = await fetch(creds.token_uri, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+        });
+        const tokenData = await tokenRes.json();
+        if (!tokenData.access_token) {
+          return new Response(JSON.stringify({ ok: false, error: "Authentication failed: " + (tokenData.error_description || "Invalid credentials") }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const accessToken = tokenData.access_token;
+
+        // Check folder access
+        const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files/${folder_id}?fields=id,name`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!folderRes.ok) {
+          const errBody = await folderRes.json().catch(() => ({}));
+          const reason = folderRes.status === 404
+            ? `Folder not found — please share the folder with ${creds.client_email}`
+            : `Permission denied — please share the folder with ${creds.client_email}`;
+          return new Response(JSON.stringify({ ok: false, error: reason }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Write test file
+        const boundary = "---lovable_test_boundary";
+        const metadata = JSON.stringify({ name: "connection_test.txt", parents: [folder_id] });
+        const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/plain\r\n\r\nLovable Drive connection test\r\n--${boundary}--`;
+
+        const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": `multipart/related; boundary=${boundary}` },
+          body,
+        });
+
+        if (!uploadRes.ok) {
+          return new Response(JSON.stringify({ ok: false, error: `Write failed — please ensure the folder is shared with ${creds.client_email} as Editor` }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const uploadData = await uploadRes.json();
+
+        // Delete test file
+        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadData.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        return new Response(JSON.stringify({ ok: true, service_account: creds.client_email }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "Unknown error during Drive test" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Test AI
     if (action === "test_ai") {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

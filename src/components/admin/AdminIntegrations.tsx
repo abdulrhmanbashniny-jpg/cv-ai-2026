@@ -26,6 +26,9 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
   const [testingAI, setTestingAI] = useState(false);
   const [aiStatus, setAiStatus] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testingDrive, setTestingDrive] = useState(false);
+  const [driveStatus, setDriveStatus] = useState<boolean | null>(null);
+  const [driveError, setDriveError] = useState<string | null>(null);
 
   const testTelegram = async () => {
     setTestingTelegram(true);
@@ -46,6 +49,28 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
     setAiStatus(data?.ok || false);
     setTestingAI(false);
     toast({ title: data?.ok ? "AI متصل!" : "AI غير متصل", variant: data?.ok ? "default" : "destructive" });
+  };
+
+  const testDrive = async () => {
+    setTestingDrive(true);
+    setDriveError(null);
+    setDriveStatus(null);
+    // Save credentials first
+    await onSave([
+      { setting_key: "google_drive_json", setting_value: driveJson },
+      { setting_key: "google_drive_folder_id", setting_value: driveFolderId },
+    ]);
+    const { data } = await supabase.functions.invoke("admin-data", {
+      body: { action: "test_drive", data: { json_credentials: driveJson, folder_id: driveFolderId } },
+    });
+    setDriveStatus(data?.ok || false);
+    if (!data?.ok) setDriveError(data?.error || "Unknown error");
+    setTestingDrive(false);
+    toast({
+      title: data?.ok ? "Google Drive متصل!" : "فشل اتصال Drive",
+      description: data?.ok ? "تم التحقق من صلاحية الكتابة بنجاح" : data?.error,
+      variant: data?.ok ? "default" : "destructive",
+    });
   };
 
   const saveAll = async () => {
@@ -132,6 +157,9 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
           <CardTitle className="text-sm font-arabic flex items-center gap-2">
             <HardDrive className="h-4 w-4 text-emerald-400" />
             Google Drive (أرشفة الملفات)
+            {driveStatus !== null && <StatusDot ok={driveStatus} />}
+            {driveStatus === true && <Badge variant="outline" className="text-emerald-400 border-emerald-400/50 text-[10px]">Connected</Badge>}
+            {driveStatus === false && <Badge variant="outline" className="text-destructive border-destructive/50 text-[10px]">Error</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -146,6 +174,16 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
               <p className="text-xs text-muted-foreground font-arabic mt-2">معرف المجلد من رابط Google Drive</p>
             </div>
           </div>
+          {driveError && (
+            <p className="text-xs text-destructive font-mono bg-destructive/10 p-2 rounded" dir="ltr">{driveError}</p>
+          )}
+          {driveStatus === true && (
+            <p className="text-xs text-emerald-400 font-arabic bg-emerald-400/10 p-2 rounded">✅ Google Drive is ready! Write access verified.</p>
+          )}
+          <Button onClick={testDrive} disabled={testingDrive || !driveJson || !driveFolderId} variant="outline" className="w-full font-arabic text-xs gap-1">
+            {testingDrive ? <Loader2 className="h-3 w-3 animate-spin" /> : <HardDrive className="h-3 w-3" />}
+            اختبار الاتصال
+          </Button>
         </CardContent>
       </Card>
 
