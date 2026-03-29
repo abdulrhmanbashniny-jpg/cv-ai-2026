@@ -51,6 +51,28 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
     toast({ title: data?.ok ? "AI متصل!" : "AI غير متصل", variant: data?.ok ? "default" : "destructive" });
   };
 
+  const testDrive = async () => {
+    setTestingDrive(true);
+    setDriveError(null);
+    setDriveStatus(null);
+    // Save credentials first
+    await onSave([
+      { setting_key: "google_drive_json", setting_value: driveJson },
+      { setting_key: "google_drive_folder_id", setting_value: driveFolderId },
+    ]);
+    const { data } = await supabase.functions.invoke("admin-data", {
+      body: { action: "test_drive", data: { json_credentials: driveJson, folder_id: driveFolderId } },
+    });
+    setDriveStatus(data?.ok || false);
+    if (!data?.ok) setDriveError(data?.error || "Unknown error");
+    setTestingDrive(false);
+    toast({
+      title: data?.ok ? "Google Drive متصل!" : "فشل اتصال Drive",
+      description: data?.ok ? "تم التحقق من صلاحية الكتابة بنجاح" : data?.error,
+      variant: data?.ok ? "default" : "destructive",
+    });
+  };
+
   const saveAll = async () => {
     setSaving(true);
     await onSave([
