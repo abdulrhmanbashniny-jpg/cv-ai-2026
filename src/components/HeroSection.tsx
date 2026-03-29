@@ -1,8 +1,11 @@
 import heroPortrait from "@/assets/hero-portrait.jpg";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, FileText, Briefcase } from "lucide-react";
+import { MessageCircle, FileText, Briefcase, Download } from "lucide-react";
+import { useState } from "react";
 
 const HeroSection = () => {
+  const [showCvMenu, setShowCvMenu] = useState(false);
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-navy-gradient">
       {/* Decorative elements */}
@@ -28,7 +31,7 @@ const HeroSection = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground font-arabic mb-4">
-              مدير أول الموارد البشرية والشؤون القانونية
+              مدير تطوير الأعمال | الموارد البشرية والشؤون القانونية
             </p>
             
             <p className="text-muted-foreground font-arabic leading-relaxed mb-10 max-w-lg mr-auto text-right">
@@ -37,21 +40,38 @@ const HeroSection = () => {
             </p>
 
             <div className="flex flex-wrap gap-4 justify-end">
-              <Button 
-                size="lg" 
-                className="bg-gold-shimmer text-primary-foreground font-arabic text-lg px-8 py-6 rounded-lg glow-gold hover:opacity-90 transition-opacity"
-              >
-                <MessageCircle className="ml-2 h-5 w-5" />
-                تحدث مع المساعد الذكي
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-primary/40 text-primary font-arabic text-lg px-8 py-6 rounded-lg hover:bg-primary/10 transition-colors"
-              >
-                <FileText className="ml-2 h-5 w-5" />
-                تحميل السيرة الذاتية
-              </Button>
+              <a href="/consultation">
+                <Button 
+                  size="lg" 
+                  className="bg-gold-shimmer text-primary-foreground font-arabic text-lg px-8 py-6 rounded-lg glow-gold hover:opacity-90 transition-opacity"
+                >
+                  <MessageCircle className="ml-2 h-5 w-5" />
+                  تحدث مع المساعد الذكي
+                </Button>
+              </a>
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => setShowCvMenu(!showCvMenu)}
+                  className="border-primary/40 text-primary font-arabic text-lg px-8 py-6 rounded-lg hover:bg-primary/10 transition-colors"
+                >
+                  <FileText className="ml-2 h-5 w-5" />
+                  تحميل السيرة الذاتية
+                </Button>
+                {showCvMenu && (
+                  <div className="absolute top-full mt-2 right-0 bg-card border border-border rounded-lg shadow-xl p-2 min-w-[200px] z-20">
+                    <a href="/cv/CV-Ar.docx" download className="flex items-center gap-2 px-4 py-2 font-arabic text-sm text-foreground hover:bg-secondary rounded-md transition-colors">
+                      <Download className="h-4 w-4 text-primary" />
+                      السيرة الذاتية - عربي
+                    </a>
+                    <a href="/cv/CV-En.docx" download className="flex items-center gap-2 px-4 py-2 font-arabic text-sm text-foreground hover:bg-secondary rounded-md transition-colors">
+                      <Download className="h-4 w-4 text-primary" />
+                      Resume - English
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -72,7 +92,7 @@ const HeroSection = () => {
               <div className="absolute -bottom-4 -right-4 bg-card border border-primary/30 rounded-xl px-5 py-3 shadow-lg">
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  <span className="font-arabic text-sm text-foreground font-semibold">مدير أول HR & Legal</span>
+                  <span className="font-arabic text-sm text-foreground font-semibold">مدير تطوير الأعمال</span>
                 </div>
               </div>
             </div>
