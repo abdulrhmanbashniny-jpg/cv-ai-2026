@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,9 +32,11 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
-            <Button size="sm" className="bg-gold-shimmer text-primary-foreground font-arabic glow-gold hover:opacity-90">
-              تحدث مع المساعد
-            </Button>
+            <a href="/consultation">
+              <Button size="sm" className="bg-gold-shimmer text-primary-foreground font-arabic glow-gold hover:opacity-90">
+                تحدث مع المساعد
+              </Button>
+            </a>
           </div>
 
           {/* Mobile Toggle */}
@@ -57,9 +60,11 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
-            <Button size="sm" className="w-full mt-4 bg-gold-shimmer text-primary-foreground font-arabic">
-              تحدث مع المساعد
-            </Button>
+            <a href="/consultation">
+              <Button size="sm" className="w-full mt-4 bg-gold-shimmer text-primary-foreground font-arabic">
+                تحدث مع المساعد
+              </Button>
+            </a>
           </div>
         )}
       </div>
