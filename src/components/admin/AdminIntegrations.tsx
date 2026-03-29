@@ -26,6 +26,9 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
   const [testingAI, setTestingAI] = useState(false);
   const [aiStatus, setAiStatus] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testingDrive, setTestingDrive] = useState(false);
+  const [driveStatus, setDriveStatus] = useState<boolean | null>(null);
+  const [driveError, setDriveError] = useState<string | null>(null);
 
   const testTelegram = async () => {
     setTestingTelegram(true);
