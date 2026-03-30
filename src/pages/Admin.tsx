@@ -11,6 +11,8 @@ import AdminInbox from "@/components/admin/AdminInbox";
 import AdminAIManager from "@/components/admin/AdminAIManager";
 import AdminIntegrations from "@/components/admin/AdminIntegrations";
 import AdminContent from "@/components/admin/AdminContent";
+import AdminChatHistory from "@/components/admin/AdminChatHistory";
+import AdminAgentPrompts from "@/components/admin/AdminAgentPrompts";
 
 const ADMIN_PASS = "Bashniny@2024";
 
@@ -72,14 +74,12 @@ const Admin = () => {
     setChatLogs(logs.data?.data || []);
     setKbEntries(kb.data?.data || []);
 
-    // Parse settings
     const s: Record<string, string> = {};
     (settingsRes.data?.data || []).forEach((item: any) => {
       s[item.setting_key] = item.setting_value || "";
     });
     setSettings(s);
 
-    // Set stats
     setStats({
       job_applications: (jobs.data?.data || []).length,
       company_requests: (companies.data?.data || []).length,
@@ -92,10 +92,8 @@ const Admin = () => {
   };
 
   const checkHealth = async () => {
-    // Database is always connected if we got here
     setSystemHealth((prev) => ({ ...prev, database: true }));
 
-    // Test AI
     try {
       const { data } = await supabase.functions.invoke("admin-data", { body: { action: "test_ai" } });
       setSystemHealth((prev) => ({ ...prev, ai: data?.ok || false }));
@@ -103,7 +101,6 @@ const Admin = () => {
       setSystemHealth((prev) => ({ ...prev, ai: false }));
     }
 
-    // Check telegram settings existence
     const hasTelegram = Boolean(settings.telegram_bot_token && settings.telegram_chat_id);
     setSystemHealth((prev) => ({ ...prev, telegram: hasTelegram ? null : false }));
   };
@@ -112,7 +109,6 @@ const Admin = () => {
     await supabase.functions.invoke("admin-data", {
       body: { action: "upsert_settings", data },
     });
-    // Update local settings
     const updated = { ...settings };
     data.forEach((d) => { updated[d.setting_key] = d.setting_value; });
     setSettings(updated);
@@ -146,7 +142,9 @@ const Admin = () => {
   const titles: Record<string, string> = {
     dashboard: "لوحة التحكم",
     inbox: "البريد الوارد",
+    chatHistory: "سجل المحادثات",
     ai: "إدارة الذكاء الاصطناعي",
+    agentPrompts: "إعدادات الوكلاء",
     content: "إدارة المحتوى",
     integrations: "التكاملات",
   };
@@ -157,7 +155,6 @@ const Admin = () => {
         <div className="min-h-screen flex w-full bg-navy-gradient">
           <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={logout} />
           <div className="flex-1 flex flex-col min-h-screen">
-            {/* Header */}
             <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm">
               <div />
               <h1 className="text-sm font-bold font-arabic text-foreground">
@@ -168,7 +165,6 @@ const Admin = () => {
               </SidebarTrigger>
             </header>
 
-            {/* Content */}
             <main className="flex-1 p-4 md:p-6 overflow-auto">
               {activeTab === "dashboard" && (
                 <AdminDashboard stats={stats} systemHealth={systemHealth} jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} />
@@ -176,8 +172,14 @@ const Admin = () => {
               {activeTab === "inbox" && (
                 <AdminInbox jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} loading={loading} onRefresh={loadData} />
               )}
+              {activeTab === "chatHistory" && (
+                <AdminChatHistory chatLogs={chatLogs} consultations={consultations} onRefresh={loadData} />
+              )}
               {activeTab === "ai" && (
                 <AdminAIManager kbEntries={kbEntries} chatLogs={chatLogs} onRefresh={loadData} />
+              )}
+              {activeTab === "agentPrompts" && (
+                <AdminAgentPrompts settings={settings} onSave={saveSettings} />
               )}
               {activeTab === "content" && (
                 <AdminContent settings={settings} onSave={saveSettings} />

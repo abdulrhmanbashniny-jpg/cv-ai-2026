@@ -1,4 +1,4 @@
-import { LayoutDashboard, Inbox, Brain, Puzzle, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, Inbox, Brain, Puzzle, FileText, LogOut, MessageCircle, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button";
 const items = [
   { title: "لوحة التحكم", value: "dashboard", icon: LayoutDashboard },
   { title: "البريد الوارد", value: "inbox", icon: Inbox },
+  { title: "سجل المحادثات", value: "chatHistory", icon: MessageCircle },
   { title: "إدارة الذكاء", value: "ai", icon: Brain },
+  { title: "إعدادات الوكلاء", value: "agentPrompts", icon: Settings },
   { title: "إدارة المحتوى", value: "content", icon: FileText },
   { title: "التكاملات", value: "integrations", icon: Puzzle },
 ];
