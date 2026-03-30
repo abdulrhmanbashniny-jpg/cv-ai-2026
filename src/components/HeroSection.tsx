@@ -1,6 +1,6 @@
 import heroPortrait from "@/assets/hero-portrait.jpg";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, FileText, Briefcase, Download } from "lucide-react";
+import { MessageCircle, FileText, Briefcase, Download, Award, MapPin } from "lucide-react";
 import { useState } from "react";
 
 const HeroSection = () => {
@@ -30,13 +30,31 @@ const HeroSection = () => {
               <span className="text-gradient-gold">باشنيني</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground font-arabic mb-4">
-              مدير تطوير الأعمال | الموارد البشرية والشؤون القانونية
+            <p className="text-xl md:text-2xl text-muted-foreground font-arabic mb-3">
+              مدير تطوير الأعمال | مدير أول الموارد البشرية والشؤون القانونية
             </p>
+
+            {/* Key highlights */}
+            <div className="flex flex-wrap gap-3 mb-6 justify-end">
+              <span className="inline-flex items-center gap-1.5 text-xs font-arabic text-muted-foreground bg-card/60 px-3 py-1.5 rounded-full border border-border/50">
+                <Award className="h-3.5 w-3.5 text-primary" />
+                خبير نظام العمل السعودي
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-arabic text-muted-foreground bg-card/60 px-3 py-1.5 rounded-full border border-border/50">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                جدة، المملكة العربية السعودية
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-arabic text-muted-foreground bg-card/60 px-3 py-1.5 rounded-full border border-border/50">
+                <Briefcase className="h-3.5 w-3.5 text-primary" />
+                راديسون بلو • الأغذية العربية • نجوم الحفل • دهانات جدة
+              </span>
+            </div>
             
-            <p className="text-muted-foreground font-arabic leading-relaxed mb-10 max-w-lg mr-auto text-right">
+            <p className="text-muted-foreground font-arabic leading-relaxed mb-8 max-w-lg mr-auto text-right">
               متخصص في بناء بيئات عمل احترافية، وتطوير السياسات التنظيمية، 
               وتقديم الاستشارات في نظام العمل السعودي والأنظمة ذات العلاقة.
+              بكالوريوس إدارة موارد بشرية من جامعة الملك عبدالعزيز، 
+              ورخصة استشارات عمالية معتمدة.
             </p>
 
             <div className="flex flex-wrap gap-4 justify-end">
