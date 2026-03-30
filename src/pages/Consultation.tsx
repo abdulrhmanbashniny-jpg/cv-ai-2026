@@ -66,7 +66,7 @@ const Consultation = () => {
 
     const greeting: Msg = {
       role: "assistant",
-      content: `مرحباً ${visitorName}! أنا المساعد الذكي للأستاذ عبدالرحمن باشنيني. رقم استشارتك هو: **${ref}**\n\nكيف يمكنني مساعدتك في موضوع "${category}"؟ يرجى وصف مشكلتك بالتفصيل.`,
+      content: `مرحباً ${visitorName}! أنا المستشار القانوني الذكي للأستاذ عبدالرحمن باشنيني. رقم استشارتك هو: **${ref}**\n\nكيف يمكنني مساعدتك في موضوع "${category}"؟ يرجى وصف مشكلتك بالتفصيل.`,
     };
     setMessages([greeting]);
     setStep("chat");
@@ -94,6 +94,7 @@ const Consultation = () => {
           },
           body: JSON.stringify({
             messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
+            agent: "legal_advisor",
           }),
         }
       );
@@ -166,9 +167,11 @@ const Consultation = () => {
       .map((m) => m.content)
       .join("\n---\n");
 
-    // Send consultation data to Google Apps Script
-    try {
-      const payload = {
+    // 1. Send to Google Apps Script (fire & forget)
+    fetch(scriptUrl, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({
         type: "consultation",
         visitor_name: visitorName,
         issue_category: category,
@@ -177,32 +180,39 @@ const Consultation = () => {
         needs_human_review: needsReview,
         ai_response: aiResponse,
         status: "closed",
-      };
+      }),
+    }).catch(() => {});
 
-      await fetch(scriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify(payload),
-      });
-    } catch (e) {
-      console.warn("Google Script error:", e);
-    }
-
-    // Notify via Telegram
-    try {
-      await supabase.functions.invoke("notify-telegram", {
-        body: {
-          type: "consultation",
-          data: {
-            visitor_name: visitorName,
-            issue_category: category,
-            reference_number: refNumber,
-            summary,
-            needs_human_review: needsReview,
-          },
+    // 2. Save to Supabase (dual-sync)
+    supabase.functions.invoke("admin-data", {
+      body: {
+        action: "insert",
+        table: "consultations",
+        data: {
+          visitor_name: visitorName,
+          issue_category: category,
+          reference_number: refNumber,
+          summary,
+          needs_human_review: needsReview,
+          ai_response: aiResponse,
+          status: "closed",
         },
-      });
-    } catch { /* silent */ }
+      },
+    }).catch(() => {});
+
+    // 3. Telegram notification (fire independently)
+    supabase.functions.invoke("notify-telegram", {
+      body: {
+        type: "consultation",
+        data: {
+          visitor_name: visitorName,
+          issue_category: category,
+          reference_number: refNumber,
+          summary,
+          needs_human_review: needsReview,
+        },
+      },
+    }).catch(() => {});
 
     setStep("done");
     setIsLoading(false);
