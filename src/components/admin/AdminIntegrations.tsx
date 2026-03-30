@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Brain, HardDrive, CheckCircle, XCircle, Loader2, Save } from "lucide-react";
+import { Send, Brain, HardDrive, CheckCircle, XCircle, Loader2, Save, FileCode2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -20,6 +20,7 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
   const [activeModel, setActiveModel] = useState(settings.active_model || "google/gemini-3-flash-preview");
   const [driveJson, setDriveJson] = useState(settings.google_drive_json || "");
   const [driveFolderId, setDriveFolderId] = useState(settings.google_drive_folder_id || "");
+  const [scriptUrl, setScriptUrl] = useState(settings.google_script_url || "");
 
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [telegramStatus, setTelegramStatus] = useState<boolean | null>(null);
@@ -30,6 +31,8 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
   const [driveStatus, setDriveStatus] = useState<boolean | null>(null);
   const [driveError, setDriveError] = useState<string | null>(null);
   const [driveLogs, setDriveLogs] = useState<string[] | null>(null);
+  const [testingScript, setTestingScript] = useState(false);
+  const [scriptStatus, setScriptStatus] = useState<boolean | null>(null);
 
   const testTelegram = async () => {
     setTestingTelegram(true);
@@ -75,6 +78,32 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
     });
   };
 
+  const testScript = async () => {
+    setTestingScript(true);
+    setScriptStatus(null);
+    const url = scriptUrl.trim();
+    if (!url) {
+      toast({ title: "خطأ", description: "أدخل رابط Google Apps Script أولاً", variant: "destructive" });
+      setTestingScript(false);
+      return;
+    }
+    try {
+      await fetch(url, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ type: "test", message: "Hello from Bashniny Admin" }),
+      });
+      // no-cors means we can't read the response, assume success
+      setScriptStatus(true);
+      toast({ title: "تم الإرسال!", description: "تم إرسال سجل تجريبي إلى Google Sheet — تحقق من الجدول" });
+    } catch (e: any) {
+      setScriptStatus(false);
+      toast({ title: "فشل الإرسال", description: e.message, variant: "destructive" });
+    } finally {
+      setTestingScript(false);
+    }
+  };
+
   const saveAll = async () => {
     setSaving(true);
     await onSave([
@@ -83,6 +112,7 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
       { setting_key: "active_model", setting_value: activeModel },
       { setting_key: "google_drive_json", setting_value: driveJson },
       { setting_key: "google_drive_folder_id", setting_value: driveFolderId },
+      { setting_key: "google_script_url", setting_value: scriptUrl },
     ]);
     setSaving(false);
     toast({ title: "تم", description: "تم حفظ جميع الإعدادات" });
@@ -195,6 +225,28 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
           <Button onClick={testDrive} disabled={testingDrive || !driveJson || !driveFolderId} variant="outline" className="w-full font-arabic text-xs gap-1">
             {testingDrive ? <Loader2 className="h-3 w-3 animate-spin" /> : <HardDrive className="h-3 w-3" />}
             اختبار الاتصال
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Google Apps Script */}
+      <Card className="border-border/50 lg:col-span-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-arabic flex items-center gap-2">
+            <FileCode2 className="h-4 w-4 text-amber-400" />
+            Google Apps Script (جسر البيانات)
+            {scriptStatus !== null && <StatusDot ok={scriptStatus} />}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <label className="block font-arabic text-xs text-muted-foreground mb-1">Web App URL</label>
+            <Input value={scriptUrl} onChange={(e) => setScriptUrl(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="https://script.google.com/macros/s/.../exec" />
+            <p className="text-xs text-muted-foreground font-arabic mt-2">رابط النشر لتطبيق Google Apps Script</p>
+          </div>
+          <Button onClick={testScript} disabled={testingScript || !scriptUrl.trim()} variant="outline" className="w-full font-arabic text-xs gap-1">
+            {testingScript ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileCode2 className="h-3 w-3" />}
+            اختبار الاتصال (إرسال سجل تجريبي)
           </Button>
         </CardContent>
       </Card>

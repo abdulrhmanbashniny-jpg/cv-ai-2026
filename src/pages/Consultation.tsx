@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaBDkH7STf_yVuEPTv8lZowePVmOnisvn2e_LUW_DistP2MezxpZdoHq0g8OUOmNLh/exec";
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfncdQeFaRkC_FVrnZKeYmcoZ4S5_qml_ujzz4WMz6vRAfFynROBcSgRPt3t-KcaXd/exec";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -33,6 +33,7 @@ const generateRefNumber = () => {
 };
 
 const Consultation = () => {
+  const [scriptUrl, setScriptUrl] = useState(DEFAULT_SCRIPT_URL);
   const [step, setStep] = useState<Step>("name");
   const [visitorName, setVisitorName] = useState("");
   const [category, setCategory] = useState("");
@@ -45,6 +46,18 @@ const Consultation = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const fetchUrl = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("admin-data", { body: { table: "admin_settings" } });
+        const settings = data?.data || [];
+        const found = settings.find((s: any) => s.setting_key === "google_script_url");
+        if (found?.setting_value) setScriptUrl(found.setting_value);
+      } catch { /* use default */ }
+    };
+    fetchUrl();
+  }, []);
 
   const startChat = () => {
     if (!visitorName.trim() || !category) return;
@@ -166,15 +179,11 @@ const Consultation = () => {
         status: "closed",
       };
 
-      const resp = await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch(scriptUrl, {
         method: "POST",
+        mode: "no-cors",
         body: JSON.stringify(payload),
       });
-
-      const result = await resp.json();
-      if (result.status !== "success") {
-        console.warn("Google Script returned:", result);
-      }
     } catch (e) {
       console.warn("Google Script error:", e);
     }
