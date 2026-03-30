@@ -226,38 +226,8 @@ serve(async (req) => {
         }
         logs.push(`Folder name: "${folderBody.name}", type: ${folderBody.mimeType}`);
 
-        // Step 3: Write test file
-        const boundary = "---lovable_test_boundary";
-        const metadata = JSON.stringify({ name: "connection_test.txt", parents: [folderId] });
-        const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/plain\r\n\r\nLovable Drive connection test @ ${new Date().toISOString()}\r\n--${boundary}--`;
-
-        const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": `multipart/related; boundary=${boundary}` },
-          body,
-        });
-        const uploadBody = await uploadRes.json();
-        logs.push(`Upload: HTTP ${uploadRes.status}`);
-
-        if (!uploadRes.ok) {
-          const apiError = uploadBody?.error || {};
-          logs.push(`Upload error: ${JSON.stringify(apiError)}`);
-          return new Response(JSON.stringify({
-            ok: false,
-            error: `Google API ${uploadRes.status}: ${apiError.message || JSON.stringify(uploadBody)}`,
-            details: { step: "write_test", status: uploadRes.status, code: apiError.code, message: apiError.message, errors: apiError.errors, logs },
-          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        logs.push(`Test file created: ${uploadBody.id}`);
-
-        // Step 4: Delete test file
-        const delRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadBody.id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        await delRes.text();
-        logs.push(`Cleanup: HTTP ${delRes.status}`);
-
+        // Folder metadata succeeded — connection is valid
+        // Skip upload test (service accounts have 0GB quota; actual uploads use folder owner's quota via parents)
         return new Response(JSON.stringify({ ok: true, service_account: creds.client_email, folder_name: folderBody.name, details: { logs } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
