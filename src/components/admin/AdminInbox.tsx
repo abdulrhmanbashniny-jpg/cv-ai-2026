@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Building2, MessageCircle, ExternalLink, MessageSquare, Loader2, Eye, Download } from "lucide-react";
+import { FileText, Building2, MessageCircle, ExternalLink, MessageSquare, Loader2, Eye, Download, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -12,6 +12,7 @@ interface AdminInboxProps {
   jobApps: any[];
   companyReqs: any[];
   consultations: any[];
+  contactMessages: any[];
   loading: boolean;
   onRefresh: () => void;
 }
@@ -23,7 +24,7 @@ const STATUS_MAP: Record<string, { label: string; class: string }> = {
   resolved: { label: "تم الحل", class: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
 };
 
-const AdminInbox = ({ jobApps, companyReqs, consultations, loading, onRefresh }: AdminInboxProps) => {
+const AdminInbox = ({ jobApps, companyReqs, consultations, contactMessages, loading, onRefresh }: AdminInboxProps) => {
   const [updating, setUpdating] = useState<string | null>(null);
 
   const updateStatus = async (table: string, id: string, status: string) => {
@@ -95,6 +96,7 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, loading, onRefresh }:
           const activeTab = document.querySelector('[data-state="active"][role="tab"]')?.getAttribute("value");
           if (activeTab === "jobs") exportCSV(jobApps, "job_applications");
           else if (activeTab === "companies") exportCSV(companyReqs, "company_requests");
+          else if (activeTab === "contact") exportCSV(contactMessages, "contact_messages");
           else exportCSV(consultations, "consultations");
         }}>
           <Download className="h-3 w-3" />
@@ -104,6 +106,7 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, loading, onRefresh }:
           <TabsTrigger value="jobs" className="font-arabic text-xs gap-1"><FileText className="h-3.5 w-3.5" />التوظيف ({jobApps.length})</TabsTrigger>
           <TabsTrigger value="companies" className="font-arabic text-xs gap-1"><Building2 className="h-3.5 w-3.5" />الشركات ({companyReqs.length})</TabsTrigger>
           <TabsTrigger value="consults" className="font-arabic text-xs gap-1"><MessageCircle className="h-3.5 w-3.5" />الاستشارات ({consultations.length})</TabsTrigger>
+          <TabsTrigger value="contact" className="font-arabic text-xs gap-1"><Mail className="h-3.5 w-3.5" />رسائل التواصل ({contactMessages.length})</TabsTrigger>
         </TabsList>
       </div>
 
@@ -195,6 +198,42 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, loading, onRefresh }:
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs text-muted-foreground mr-auto">{new Date(c.created_at).toLocaleDateString("ar-SA")}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="contact">
+        <div className="space-y-3">
+          {contactMessages.length === 0 && <p className="text-muted-foreground font-arabic text-center py-8">لا توجد رسائل</p>}
+          {contactMessages.map((msg: any) => (
+            <Card key={msg.id} className="border-border/50">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <StatusSelect value={msg.status || "pending"} table="contact_requests" id={msg.id} />
+                  </div>
+                  <div className="text-right">
+                    <h4 className="font-bold font-arabic text-foreground">{msg.full_name}</h4>
+                    {msg.email && <p className="text-sm text-muted-foreground">{msg.email}</p>}
+                    {msg.phone && <p className="text-sm text-muted-foreground" dir="ltr">{msg.phone}</p>}
+                  </div>
+                </div>
+                <p className="text-sm font-arabic text-foreground bg-secondary/30 rounded-lg p-3 mb-3">{msg.reason}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {msg.phone && (
+                    <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => openWhatsApp(msg.phone, "contact_requests", msg.id, msg.status)}>
+                      <MessageSquare className="h-3 w-3" />واتساب
+                    </Button>
+                  )}
+                  {msg.email && (
+                    <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => window.open(`mailto:${msg.email}`)}>
+                      <ExternalLink className="h-3 w-3" />بريد
+                    </Button>
+                  )}
+                  <span className="text-xs text-muted-foreground mr-auto">{new Date(msg.created_at).toLocaleDateString("ar-SA")}</span>
                 </div>
               </CardContent>
             </Card>

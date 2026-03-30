@@ -1,12 +1,29 @@
+import { useState, useEffect } from "react";
 import { Phone, Mail, MapPin } from "lucide-react";
 import ContactModal from "@/components/ContactModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const Footer = () => {
+  const [footerEmail, setFooterEmail] = useState("info@bashniny.com");
+  const [footerPhone, setFooterPhone] = useState("");
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("admin-data", { body: { table: "admin_settings" } });
+        const settings = data?.data || [];
+        const get = (key: string) => settings.find((s: any) => s.setting_key === key)?.setting_value;
+        if (get("footer_email")) setFooterEmail(get("footer_email"));
+        if (get("footer_phone")) setFooterPhone(get("footer_phone"));
+      } catch { /* use defaults */ }
+    };
+    fetchSettings();
+  }, []);
+
   return (
     <footer className="bg-navy-deep border-t border-border py-16">
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-right">
-          {/* Brand */}
           <div>
             <h3 className="text-2xl font-bold font-arabic text-foreground mb-4">
               عبدالرحمن <span className="text-primary">باشنيني</span>
@@ -17,7 +34,6 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Quick Links */}
           <div>
             <h4 className="text-lg font-bold font-arabic text-foreground mb-4">روابط سريعة</h4>
             <ul className="space-y-3 font-arabic text-sm">
@@ -28,7 +44,6 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
             <h4 className="text-lg font-bold font-arabic text-foreground mb-4">تواصل معنا</h4>
             <ul className="space-y-3 font-arabic text-sm">
@@ -37,9 +52,15 @@ const Footer = () => {
                 <MapPin className="h-4 w-4 text-primary" />
               </li>
               <li className="flex items-center gap-2 justify-end text-muted-foreground">
-                <span>info@bashniny.com</span>
+                <span>{footerEmail}</span>
                 <Mail className="h-4 w-4 text-primary" />
               </li>
+              {footerPhone && (
+                <li className="flex items-center gap-2 justify-end text-muted-foreground">
+                  <span dir="ltr">{footerPhone}</span>
+                  <Phone className="h-4 w-4 text-primary" />
+                </li>
+              )}
             </ul>
             <div className="mt-4">
               <ContactModal />

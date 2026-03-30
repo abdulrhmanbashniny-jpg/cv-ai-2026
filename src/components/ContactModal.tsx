@@ -22,12 +22,23 @@ const ContactModal = () => {
     }
     setSending(true);
     try {
-      await supabase.functions.invoke("notify-telegram", {
+      // 1. Save to contact_requests table via admin-data edge function
+      await supabase.functions.invoke("admin-data", {
         body: {
-          type: "contact_us",
-          data: { full_name: name, email, phone, reason, reference_number: "CONTACT" },
+          action: "insert",
+          table: "contact_requests",
+          data: { full_name: name, email: email || null, phone: phone || null, reason },
         },
       });
+
+      // 2. Trigger Telegram notification independently
+      supabase.functions.invoke("notify-telegram", {
+        body: {
+          type: "contact_us",
+          data: { full_name: name, email, phone, reason },
+        },
+      }).catch(() => {});
+
       toast({ title: "تم الإرسال!", description: "سنتواصل معك قريباً" });
       setName(""); setEmail(""); setPhone(""); setReason("");
       setOpen(false);

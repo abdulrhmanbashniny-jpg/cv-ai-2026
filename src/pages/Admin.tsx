@@ -27,6 +27,7 @@ const Admin = () => {
   const [jobApps, setJobApps] = useState<any[]>([]);
   const [companyReqs, setCompanyReqs] = useState<any[]>([]);
   const [consultations, setConsultations] = useState<any[]>([]);
+  const [contactMessages, setContactMessages] = useState<any[]>([]);
   const [chatLogs, setChatLogs] = useState<any[]>([]);
   const [kbEntries, setKbEntries] = useState<any[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -81,18 +82,20 @@ const Admin = () => {
 
   const loadData = async () => {
     setLoading(true);
-    const [jobs, companies, consults, logs, kb, settingsRes] = await Promise.all([
+    const [jobs, companies, consults, logs, kb, settingsRes, contacts] = await Promise.all([
       supabase.functions.invoke("admin-data", { body: { table: "job_applications" } }),
       supabase.functions.invoke("admin-data", { body: { table: "company_requests" } }),
       supabase.functions.invoke("admin-data", { body: { table: "consultations" } }),
       supabase.functions.invoke("admin-data", { body: { table: "chat_logs" } }),
       supabase.functions.invoke("admin-data", { body: { table: "ai_knowledge_base" } }),
       supabase.functions.invoke("admin-data", { body: { table: "admin_settings" } }),
+      supabase.functions.invoke("admin-data", { body: { table: "contact_requests" } }),
     ]);
 
     setJobApps(jobs.data?.data || []);
     setCompanyReqs(companies.data?.data || []);
     setConsultations(consults.data?.data || []);
+    setContactMessages(contacts.data?.data || []);
     setChatLogs(logs.data?.data || []);
     setKbEntries(kb.data?.data || []);
 
@@ -219,7 +222,7 @@ const Admin = () => {
                 <AdminDashboard stats={stats} systemHealth={systemHealth} jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} />
               )}
               {activeTab === "inbox" && (
-                <AdminInbox jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} loading={loading} onRefresh={loadData} />
+                <AdminInbox jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} contactMessages={contactMessages} loading={loading} onRefresh={loadData} />
               )}
               {activeTab === "chatHistory" && (
                 <AdminChatHistory chatLogs={chatLogs} consultations={consultations} onRefresh={loadData} />
