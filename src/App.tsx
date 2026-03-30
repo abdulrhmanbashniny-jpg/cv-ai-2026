@@ -12,6 +12,7 @@ import Consultation from "./pages/Consultation.tsx";
 import CareerGift from "./pages/CareerGift.tsx";
 import Admin from "./pages/Admin.tsx";
 import MaintenancePage from "./components/MaintenancePage.tsx";
+import FloatingAIChat from "./components/FloatingAIChat.tsx";
 
 const queryClient = new QueryClient();
 
@@ -45,7 +46,10 @@ const MaintenanceWrapper = ({ children }: { children: React.ReactNode }) => {
 
   if (!checked) return null;
   if (maintenance && location.pathname !== "/admin") return <MaintenancePage />;
-  return <>{children}</>;
+  return <>
+    {children}
+    {!location.pathname.startsWith("/admin") && <FloatingAIChat />}
+  </>;
 };
 
 const App = () => (

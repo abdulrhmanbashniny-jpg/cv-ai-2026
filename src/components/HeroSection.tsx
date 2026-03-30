@@ -84,15 +84,14 @@ const HeroSection = () => {
             </p>
 
             <div className="flex flex-wrap gap-4 justify-end">
-              <a href="/consultation">
-                <Button 
-                  size="lg" 
-                  className="bg-gold-shimmer text-primary-foreground font-arabic text-lg px-8 py-6 rounded-lg glow-gold hover:opacity-90 transition-opacity"
-                >
-                  <MessageCircle className="ml-2 h-5 w-5" />
-                  تحدث مع المساعد الذكي
-                </Button>
-              </a>
+              <Button 
+                size="lg" 
+                onClick={() => (window as any).__openFloatingChat?.()}
+                className="bg-gold-shimmer text-primary-foreground font-arabic text-lg px-8 py-6 rounded-lg glow-gold hover:opacity-90 transition-opacity"
+              >
+                <MessageCircle className="ml-2 h-5 w-5" />
+                تحدث مع المساعد الذكي
+              </Button>
               {(showCvAr || showCvEn) && (
                 <div className="relative">
                   <Button 
