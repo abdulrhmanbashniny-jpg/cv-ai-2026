@@ -119,36 +119,45 @@ serve(async (req) => {
 
     // Test Google Drive
     if (action === "test_drive") {
-      const { json_credentials, folder_id } = data || {};
+      const { json_credentials, folder_id: rawFolderId } = data || {};
+      const folderId = (rawFolderId || "").trim().replace(/[^\w-]/g, "");
 
       // Validate JSON format
       let creds: any;
       try {
         creds = typeof json_credentials === "string" ? JSON.parse(json_credentials) : json_credentials;
         if (!creds.client_email || !creds.private_key || !creds.token_uri) {
-          return new Response(JSON.stringify({ ok: false, error: "Invalid JSON: missing client_email, private_key, or token_uri" }), {
+          return new Response(JSON.stringify({ ok: false, error: "Invalid JSON: missing client_email, private_key, or token_uri", details: { step: "json_validation" } }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-      } catch {
-        return new Response(JSON.stringify({ ok: false, error: "Invalid JSON format" }), {
+      } catch (e) {
+        return new Response(JSON.stringify({ ok: false, error: "Invalid JSON format: " + (e instanceof Error ? e.message : String(e)), details: { step: "json_parse" } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      if (!folder_id) {
-        return new Response(JSON.stringify({ ok: false, error: "Folder ID is required" }), {
+      if (!folderId) {
+        return new Response(JSON.stringify({ ok: false, error: "Folder ID is required (was empty after trimming)", details: { step: "folder_id_validation" } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const logs: string[] = [];
+      logs.push(`Service Account: ${creds.client_email}`);
+      logs.push(`Folder ID (trimmed): ${folderId}`);
+      logs.push(`Token URI: ${creds.token_uri}`);
 
       try {
-        // Build JWT for Google API
+        // Fix private key: replace escaped \\n with real newlines
+        creds.private_key = creds.private_key.replace(/\\n/g, "\n");
+
+        // Build JWT for Google API (use full drive scope, not just drive.file)
         const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
         const now = Math.floor(Date.now() / 1000);
         const claimSet = btoa(JSON.stringify({
           iss: creds.client_email,
-          scope: "https://www.googleapis.com/auth/drive.file",
+          scope: "https://www.googleapis.com/auth/drive",
           aud: creds.token_uri,
           exp: now + 3600,
           iat: now,
@@ -162,6 +171,7 @@ serve(async (req) => {
         const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, signatureInput);
         const encodedSig = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
         const jwt = `${header}.${claimSet}.${encodedSig}`;
+        logs.push("JWT signed successfully");
 
         // Exchange JWT for access token
         const tokenRes = await fetch(creds.token_uri, {
@@ -171,56 +181,89 @@ serve(async (req) => {
         });
         const tokenData = await tokenRes.json();
         if (!tokenData.access_token) {
-          return new Response(JSON.stringify({ ok: false, error: "Authentication failed: " + (tokenData.error_description || "Invalid credentials") }), {
+          logs.push(`Token exchange failed: ${JSON.stringify(tokenData)}`);
+          return new Response(JSON.stringify({ ok: false, error: `Auth failed (${tokenRes.status}): ${tokenData.error_description || tokenData.error || "Unknown"}`, details: { step: "token_exchange", status: tokenRes.status, response: tokenData, logs } }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         const accessToken = tokenData.access_token;
+        logs.push("Access token obtained");
 
-        // Check folder access
-        const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files/${folder_id}?fields=id,name`, {
+        // Step 1: List files in folder to confirm access
+        const listUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&pageSize=1&fields=files(id,name)`;
+        const listRes = await fetch(listUrl, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-        if (!folderRes.ok) {
-          const errBody = await folderRes.json().catch(() => ({}));
-          const reason = folderRes.status === 404
-            ? `Folder not found — please share the folder with ${creds.client_email}`
-            : `Permission denied — please share the folder with ${creds.client_email}`;
-          return new Response(JSON.stringify({ ok: false, error: reason }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        const listBody = await listRes.json();
+        logs.push(`List files: HTTP ${listRes.status}`);
+
+        if (!listRes.ok) {
+          const apiError = listBody?.error || {};
+          logs.push(`List error: ${JSON.stringify(apiError)}`);
+          return new Response(JSON.stringify({
+            ok: false,
+            error: `Google API ${listRes.status}: ${apiError.message || JSON.stringify(listBody)}`,
+            details: { step: "list_files", status: listRes.status, code: apiError.code, message: apiError.message, errors: apiError.errors, logs },
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
+        logs.push(`Folder accessible, ${listBody.files?.length || 0} file(s) found`);
 
-        // Write test file
+        // Step 2: Get folder metadata to confirm it exists
+        const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const folderBody = await folderRes.json();
+        logs.push(`Folder metadata: HTTP ${folderRes.status}`);
+
+        if (!folderRes.ok) {
+          const apiError = folderBody?.error || {};
+          logs.push(`Folder error: ${JSON.stringify(apiError)}`);
+          return new Response(JSON.stringify({
+            ok: false,
+            error: `Google API ${folderRes.status}: ${apiError.message || JSON.stringify(folderBody)}`,
+            details: { step: "folder_metadata", status: folderRes.status, code: apiError.code, message: apiError.message, errors: apiError.errors, logs },
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        logs.push(`Folder name: "${folderBody.name}", type: ${folderBody.mimeType}`);
+
+        // Step 3: Write test file
         const boundary = "---lovable_test_boundary";
-        const metadata = JSON.stringify({ name: "connection_test.txt", parents: [folder_id] });
-        const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/plain\r\n\r\nLovable Drive connection test\r\n--${boundary}--`;
+        const metadata = JSON.stringify({ name: "connection_test.txt", parents: [folderId] });
+        const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/plain\r\n\r\nLovable Drive connection test @ ${new Date().toISOString()}\r\n--${boundary}--`;
 
-        const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", {
+        const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name", {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": `multipart/related; boundary=${boundary}` },
           body,
         });
+        const uploadBody = await uploadRes.json();
+        logs.push(`Upload: HTTP ${uploadRes.status}`);
 
         if (!uploadRes.ok) {
-          return new Response(JSON.stringify({ ok: false, error: `Write failed — please ensure the folder is shared with ${creds.client_email} as Editor` }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          const apiError = uploadBody?.error || {};
+          logs.push(`Upload error: ${JSON.stringify(apiError)}`);
+          return new Response(JSON.stringify({
+            ok: false,
+            error: `Google API ${uploadRes.status}: ${apiError.message || JSON.stringify(uploadBody)}`,
+            details: { step: "write_test", status: uploadRes.status, code: apiError.code, message: apiError.message, errors: apiError.errors, logs },
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
+        logs.push(`Test file created: ${uploadBody.id}`);
 
-        const uploadData = await uploadRes.json();
-
-        // Delete test file
-        await fetch(`https://www.googleapis.com/drive/v3/files/${uploadData.id}`, {
+        // Step 4: Delete test file
+        const delRes = await fetch(`https://www.googleapis.com/drive/v3/files/${uploadBody.id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${accessToken}` },
         });
+        await delRes.text();
+        logs.push(`Cleanup: HTTP ${delRes.status}`);
 
-        return new Response(JSON.stringify({ ok: true, service_account: creds.client_email }), {
+        return new Response(JSON.stringify({ ok: true, service_account: creds.client_email, folder_name: folderBody.name, details: { logs } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (e) {
-        return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "Unknown error during Drive test" }), {
+        logs.push(`Exception: ${e instanceof Error ? e.message : String(e)}`);
+        return new Response(JSON.stringify({ ok: false, error: e instanceof Error ? e.message : "Unknown error", details: { step: "exception", logs } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
