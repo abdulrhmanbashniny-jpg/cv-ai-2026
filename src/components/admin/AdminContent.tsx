@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Image, FileText, Save, Loader2, Eye, Download, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdminContentProps {
   settings: Record<string, string>;
@@ -18,7 +19,33 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
   const [heroBio, setHeroBio] = useState(settings.hero_bio || "مدير أول الموارد البشرية والشؤون القانونية");
   const [showCvAr, setShowCvAr] = useState(settings.show_cv_ar !== "false");
   const [showCvEn, setShowCvEn] = useState(settings.show_cv_en !== "false");
+  const [footerEmail, setFooterEmail] = useState(settings.footer_email || "info@bashniny.com");
+  const [footerPhone, setFooterPhone] = useState(settings.footer_phone || "");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [heroImageUrl, setHeroImageUrl] = useState(settings.hero_image_url || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadHeroImage = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `hero-profile.${ext}`;
+      
+      const { error } = await supabase.storage
+        .from("cv-uploads")
+        .upload(fileName, file, { upsert: true });
+
+      if (error) throw error;
+
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/cv-uploads/${fileName}`;
+      setHeroImageUrl(url);
+      toast({ title: "تم", description: "تم رفع الصورة بنجاح" });
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e.message, variant: "destructive" });
+    }
+    setUploading(false);
+  };
 
   const saveContent = async () => {
     setSaving(true);
@@ -27,6 +54,9 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
       { setting_key: "hero_bio", setting_value: heroBio },
       { setting_key: "show_cv_ar", setting_value: String(showCvAr) },
       { setting_key: "show_cv_en", setting_value: String(showCvEn) },
+      { setting_key: "footer_email", setting_value: footerEmail },
+      { setting_key: "footer_phone", setting_value: footerPhone },
+      { setting_key: "hero_image_url", setting_value: heroImageUrl },
     ]);
     setSaving(false);
     toast({ title: "تم", description: "تم حفظ إعدادات المحتوى" });
@@ -51,9 +81,37 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
             <label className="block font-arabic text-xs text-muted-foreground mb-1">الوصف المهني</label>
             <Textarea value={heroBio} onChange={(e) => setHeroBio(e.target.value)} className="text-right font-arabic" rows={3} />
           </div>
-          <p className="text-xs text-muted-foreground font-arabic">
-            لتغيير الصورة الشخصية، يرجى رفع صورة جديدة عبر المحادثة مع Lovable
-          </p>
+          {/* Hero Image Upload */}
+          <div>
+            <label className="block font-arabic text-xs text-muted-foreground mb-1">الصورة الشخصية</label>
+            <div className="flex items-center gap-3">
+              {heroImageUrl && (
+                <img src={heroImageUrl} alt="Hero" className="w-16 h-16 rounded-full object-cover border-2 border-primary/30" />
+              )}
+              <div className="flex-1">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadHeroImage(file);
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="font-arabic text-xs gap-1"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                  رفع صورة جديدة
+                </Button>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -107,10 +165,28 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
               </Button>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <p className="text-xs text-muted-foreground font-arabic">
-            لاستبدال الملفات، ارفع ملفات جديدة عبر المحادثة مع Lovable
-          </p>
+      {/* Footer Settings */}
+      <Card className="border-border/50 lg:col-span-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-arabic flex items-center gap-2">
+            <FileText className="h-4 w-4 text-purple-400" />
+            إعدادات التذييل (Footer)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block font-arabic text-xs text-muted-foreground mb-1">البريد الإلكتروني</label>
+              <Input value={footerEmail} onChange={(e) => setFooterEmail(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="info@bashniny.com" />
+            </div>
+            <div>
+              <label className="block font-arabic text-xs text-muted-foreground mb-1">رقم الهاتف</label>
+              <Input value={footerPhone} onChange={(e) => setFooterPhone(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="+966..." />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

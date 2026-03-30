@@ -1,5 +1,5 @@
-import { MessageCircle, Phone, Mail, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Phone, Mail, MapPin } from "lucide-react";
+import ContactModal from "@/components/ContactModal";
 
 const Footer = () => {
   return (
@@ -21,10 +21,10 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-bold font-arabic text-foreground mb-4">روابط سريعة</h4>
             <ul className="space-y-3 font-arabic text-sm">
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">الرئيسية</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">بوابة التوظيف</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">الاستشارات الذكية</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">تحميل السيرة الذاتية</a></li>
+              <li><a href="/" className="text-muted-foreground hover:text-primary transition-colors">الرئيسية</a></li>
+              <li><a href="/careers" className="text-muted-foreground hover:text-primary transition-colors">بوابة التوظيف</a></li>
+              <li><a href="/consultation" className="text-muted-foreground hover:text-primary transition-colors">الاستشارات الذكية</a></li>
+              <li><a href="/career-gift" className="text-muted-foreground hover:text-primary transition-colors">هدية السيرة الذاتية</a></li>
             </ul>
           </div>
 
@@ -41,6 +41,9 @@ const Footer = () => {
                 <Mail className="h-4 w-4 text-primary" />
               </li>
             </ul>
+            <div className="mt-4">
+              <ContactModal />
+            </div>
           </div>
         </div>
 
