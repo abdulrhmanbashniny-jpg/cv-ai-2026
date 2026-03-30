@@ -66,6 +66,13 @@ serve(async (req) => {
         `📝 الملخص: ${data.summary || "بدون ملخص"}` +
         (data.needs_human_review ? "\n\n⚠️ <b>يحتاج مراجعة بشرية</b>" : "") +
         `\n\n📌 عرض التفاصيل في لوحة التحكم`;
+    } else if (type === "contact_us") {
+      message = `📩 <b>رسالة تواصل جديدة!</b>\n\n` +
+        `👤 الاسم: ${data.full_name}\n` +
+        (data.email ? `📧 البريد: ${data.email}\n` : "") +
+        (data.phone ? `📞 الجوال: ${data.phone}\n` : "") +
+        `💬 السبب: ${data.reason}\n\n` +
+        `📌 عرض التفاصيل في لوحة التحكم`;
     }
 
     if (message) {
