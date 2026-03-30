@@ -12,6 +12,7 @@ import Consultation from "./pages/Consultation.tsx";
 import CareerGift from "./pages/CareerGift.tsx";
 import Admin from "./pages/Admin.tsx";
 import MaintenancePage from "./components/MaintenancePage.tsx";
+import FloatingAIChat from "./components/FloatingAIChat.tsx";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          {location.pathname !== "/admin" && <FloatingAIChat />}
         </MaintenanceWrapper>
       </BrowserRouter>
     </TooltipProvider>
