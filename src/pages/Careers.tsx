@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Users, Building2, Upload, CheckCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaBDkH7STf_yVuEPTv8lZowePVmOnisvn2e_LUW_DistP2MezxpZdoHq0g8OUOmNLh/exec";
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfncdQeFaRkC_FVrnZKeYmcoZ4S5_qml_ujzz4WMz6vRAfFynROBcSgRPt3t-KcaXd/exec";
 
 const cities = ["جدة", "الرياض", "مكة المكرمة", "المدينة المنورة", "الدمام", "الخبر", "تبوك", "أبها", "حائل", "أخرى"];
 const departments = ["الموارد البشرية", "الشؤون القانونية", "المالية", "التسويق", "العمليات", "تقنية المعلومات", "الإدارة", "أخرى"];
@@ -34,6 +34,21 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 const Careers = () => {
+  const [scriptUrl, setScriptUrl] = useState(DEFAULT_SCRIPT_URL);
+
+  // Fetch Google Script URL from settings on mount
+  useEffect(() => {
+    const fetchUrl = async () => {
+      try {
+        const { data } = await supabase.functions.invoke("admin-data", { body: { table: "admin_settings" } });
+        const settings = data?.data || [];
+        const found = settings.find((s: any) => s.setting_key === "google_script_url");
+        if (found?.setting_value) setScriptUrl(found.setting_value);
+      } catch { /* use default */ }
+    };
+    fetchUrl();
+  }, []);
+
   // Job seeker state
   const [jsName, setJsName] = useState("");
   const [jsPhone, setJsPhone] = useState("");
@@ -91,16 +106,11 @@ const Careers = () => {
         file_mime_type: fileMimeType,
       };
 
-      const resp = await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch(scriptUrl, {
         method: "POST",
+        mode: "no-cors",
         body: JSON.stringify(payload),
       });
-
-      const result = await resp.json();
-
-      if (result.status !== "success") {
-        throw new Error(result.message || "فشل في إرسال الطلب");
-      }
 
       // Notify Telegram (keep backend notification)
       try {
@@ -139,16 +149,11 @@ const Careers = () => {
         reference_number: ref,
       };
 
-      const resp = await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch(scriptUrl, {
         method: "POST",
+        mode: "no-cors",
         body: JSON.stringify(payload),
       });
-
-      const result = await resp.json();
-
-      if (result.status !== "success") {
-        throw new Error(result.message || "فشل في إرسال الطلب");
-      }
 
       // Notify Telegram
       try {
