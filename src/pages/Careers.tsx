@@ -113,18 +113,20 @@ const Careers = () => {
         });
       } catch { /* silent */ }
 
+      // Notify Telegram (keep backend notification)
+      try {
+        await supabase.functions.invoke("notify-telegram", {
+          body: { type: "job_application", data: { full_name: jsName, phone: jsPhone, city: jsCity, department: jsDept, reference_number: ref } },
+        });
+      } catch { /* silent */ }
+
       setJsRef(ref);
       setJsSuccess(true);
-      // Clear form
       setJsName("");
       setJsPhone("");
       setJsCity("");
       setJsDept("");
       setJsFile(null);
-      } catch { /* silent */ }
-
-      setJsRef(ref);
-      setJsSuccess(true);
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message || "حدث خطأ في إرسال الطلب", variant: "destructive" });
     } finally {
