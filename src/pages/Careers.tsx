@@ -54,18 +54,20 @@ const Careers = () => {
     let cvUrl = null;
 
     if (jsFile) {
-      // Rename: [City]-[Dept]-2024-[Name]-[Ref].pdf
       const ext = jsFile.name.split(".").pop() || "pdf";
-      const fileName = `${jsCity}-${jsDept}-${new Date().getFullYear()}-${jsName}-${ref}.${ext}`.replace(/\s/g, "_");
+      // Safe ASCII key for storage bucket
+      const safeKey = `${ref}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+      // Descriptive Arabic name for Drive/DB
+      const displayName = `${jsCity}-${jsDept}-${new Date().getFullYear()}-${jsName}-${ref}.${ext}`.replace(/\s/g, "_");
       const { error: uploadError } = await supabase.storage
         .from("cv-uploads")
-        .upload(fileName, jsFile);
+        .upload(safeKey, jsFile);
       if (uploadError) {
         toast({ title: "خطأ في رفع الملف", description: uploadError.message, variant: "destructive" });
         setJsLoading(false);
         return;
       }
-      cvUrl = fileName;
+      cvUrl = safeKey;
     }
 
     const { error } = await supabase.from("job_applications").insert({
