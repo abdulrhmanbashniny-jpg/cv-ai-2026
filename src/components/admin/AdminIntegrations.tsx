@@ -29,6 +29,7 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
   const [testingDrive, setTestingDrive] = useState(false);
   const [driveStatus, setDriveStatus] = useState<boolean | null>(null);
   const [driveError, setDriveError] = useState<string | null>(null);
+  const [driveLogs, setDriveLogs] = useState<string[] | null>(null);
 
   const testTelegram = async () => {
     setTestingTelegram(true);
@@ -55,7 +56,7 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
     setTestingDrive(true);
     setDriveError(null);
     setDriveStatus(null);
-    // Save credentials first
+    setDriveLogs(null);
     await onSave([
       { setting_key: "google_drive_json", setting_value: driveJson },
       { setting_key: "google_drive_folder_id", setting_value: driveFolderId },
@@ -65,10 +66,11 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
     });
     setDriveStatus(data?.ok || false);
     if (!data?.ok) setDriveError(data?.error || "Unknown error");
+    if (data?.details?.logs) setDriveLogs(data.details.logs);
     setTestingDrive(false);
     toast({
       title: data?.ok ? "Google Drive متصل!" : "فشل اتصال Drive",
-      description: data?.ok ? "تم التحقق من صلاحية الكتابة بنجاح" : data?.error,
+      description: data?.ok ? `Folder: ${data.folder_name}` : data?.error,
       variant: data?.ok ? "default" : "destructive",
     });
   };
@@ -175,7 +177,17 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
             </div>
           </div>
           {driveError && (
-            <p className="text-xs text-destructive font-mono bg-destructive/10 p-2 rounded" dir="ltr">{driveError}</p>
+            <div className="space-y-2">
+              <p className="text-xs text-destructive font-mono bg-destructive/10 p-2 rounded" dir="ltr">{driveError}</p>
+            </div>
+          )}
+          {driveLogs && driveLogs.length > 0 && (
+            <div className="bg-muted/30 border border-border/50 rounded p-2 space-y-0.5" dir="ltr">
+              <p className="text-[10px] text-muted-foreground font-arabic mb-1">سجل التشخيص:</p>
+              {driveLogs.map((log, i) => (
+                <p key={i} className={`text-[11px] font-mono ${log.includes("error") || log.includes("Error") || log.includes("failed") || log.includes("Failed") ? "text-destructive" : "text-muted-foreground"}`}>{log}</p>
+              ))}
+            </div>
           )}
           {driveStatus === true && (
             <p className="text-xs text-emerald-400 font-arabic bg-emerald-400/10 p-2 rounded">✅ Google Drive is ready! Write access verified.</p>
