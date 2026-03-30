@@ -46,7 +46,10 @@ const MaintenanceWrapper = ({ children }: { children: React.ReactNode }) => {
 
   if (!checked) return null;
   if (maintenance && location.pathname !== "/admin") return <MaintenancePage />;
-  return <>{children}</>;
+  return <>
+    {children}
+    {!location.pathname.startsWith("/admin") && <FloatingAIChat />}
+  </>;
 };
 
 const App = () => (
@@ -65,7 +68,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          {location.pathname !== "/admin" && <FloatingAIChat />}
+          </Routes>
         </MaintenanceWrapper>
       </BrowserRouter>
     </TooltipProvider>
