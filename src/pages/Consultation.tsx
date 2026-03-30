@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaBDkH7STf_yVuEPTv8lZowePVmOnisvn2e_LUW_DistP2MezxpZdoHq0g8OUOmNLh/exec";
+
 type Msg = { role: "user" | "assistant"; content: string };
 
 type Step = "name" | "category" | "chat" | "done";
@@ -38,36 +40,16 @@ const Consultation = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [refNumber, setRefNumber] = useState("");
-  const [consultationId, setConsultationId] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const startChat = async () => {
+  const startChat = () => {
     if (!visitorName.trim() || !category) return;
     const ref = generateRefNumber();
     setRefNumber(ref);
-
-    // Create consultation record - generate ID client-side to avoid SELECT RLS issue
-    const id = crypto.randomUUID();
-    const { error } = await supabase
-      .from("consultations")
-      .insert({
-        id,
-        reference_number: ref,
-        visitor_name: visitorName,
-        issue_category: category,
-        status: "open",
-      });
-
-    if (error) {
-      toast({ title: "خطأ", description: "حدث خطأ في إنشاء الاستشارة", variant: "destructive" });
-      return;
-    }
-
-    setConsultationId(id);
 
     const greeting: Msg = {
       role: "assistant",
@@ -99,7 +81,6 @@ const Consultation = () => {
           },
           body: JSON.stringify({
             messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
-            consultation_id: consultationId,
           }),
         }
       );
@@ -152,10 +133,8 @@ const Consultation = () => {
   };
 
   const endConsultation = async () => {
-    if (!consultationId) return;
     setIsLoading(true);
 
-    // Generate summary from messages
     const chatSummary = messages
       .filter((m) => m.role === "user")
       .map((m) => m.content)
@@ -163,27 +142,42 @@ const Consultation = () => {
 
     const summary = chatSummary.slice(0, 500);
 
-    // Check if AI said it needs human review
     const needsReview = messages.some(
       (m) =>
         m.role === "assistant" &&
         (m.content.includes("سأستشير") || m.content.includes("أعود إليك"))
     );
 
-    // Use edge function to update (no UPDATE RLS policy for anon)
-    await supabase.functions.invoke("admin-data", {
-      body: {
-        action: "update",
-        table: "consultations",
-        id: consultationId,
-        data: {
-          status: "closed",
-          summary,
-          needs_human_review: needsReview,
-          ai_response: messages.filter((m) => m.role === "assistant").map((m) => m.content).join("\n---\n"),
-        },
-      },
-    });
+    const aiResponse = messages
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content)
+      .join("\n---\n");
+
+    // Send consultation data to Google Apps Script
+    try {
+      const payload = {
+        type: "consultation",
+        visitor_name: visitorName,
+        issue_category: category,
+        reference_number: refNumber,
+        summary,
+        needs_human_review: needsReview,
+        ai_response: aiResponse,
+        status: "closed",
+      };
+
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const result = await resp.json();
+      if (result.status !== "success") {
+        console.warn("Google Script returned:", result);
+      }
+    } catch (e) {
+      console.warn("Google Script error:", e);
+    }
 
     // Notify via Telegram
     try {
