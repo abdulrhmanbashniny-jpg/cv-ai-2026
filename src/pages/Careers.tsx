@@ -10,12 +10,28 @@ import { Users, Building2, Upload, CheckCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxaBDkH7STf_yVuEPTv8lZowePVmOnisvn2e_LUW_DistP2MezxpZdoHq0g8OUOmNLh/exec";
+
 const cities = ["جدة", "الرياض", "مكة المكرمة", "المدينة المنورة", "الدمام", "الخبر", "تبوك", "أبها", "حائل", "أخرى"];
 const departments = ["الموارد البشرية", "الشؤون القانونية", "المالية", "التسويق", "العمليات", "تقنية المعلومات", "الإدارة", "أخرى"];
 
 const generateRef = () => `ARB-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
 const validateSaudiPhone = (phone: string) => /^(05|5)\d{8}$/.test(phone.replace(/\s/g, ""));
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remove the data:...;base64, prefix
+      const base64 = result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 const Careers = () => {
   // Job seeker state
@@ -51,50 +67,55 @@ const Careers = () => {
 
     setJsLoading(true);
     const ref = generateRef();
-    let cvUrl = null;
 
-    if (jsFile) {
-      const ext = jsFile.name.split(".").pop() || "pdf";
-      // Safe ASCII key for storage bucket
-      const safeKey = `${ref}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
-      // Descriptive Arabic name for Drive/DB
-      const displayName = `${jsCity}-${jsDept}-${new Date().getFullYear()}-${jsName}-${ref}.${ext}`.replace(/\s/g, "_");
-      const { error: uploadError } = await supabase.storage
-        .from("cv-uploads")
-        .upload(safeKey, jsFile);
-      if (uploadError) {
-        toast({ title: "خطأ في رفع الملف", description: uploadError.message, variant: "destructive" });
-        setJsLoading(false);
-        return;
-      }
-      cvUrl = safeKey;
-    }
-
-    const { error } = await supabase.from("job_applications").insert({
-      full_name: jsName,
-      phone: jsPhone,
-      city: jsCity,
-      department: jsDept,
-      reference_number: ref,
-      cv_url: cvUrl,
-    });
-
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-      setJsLoading(false);
-      return;
-    }
-
-    // Notify Telegram
     try {
-      await supabase.functions.invoke("notify-telegram", {
-        body: { type: "job_application", data: { full_name: jsName, phone: jsPhone, city: jsCity, department: jsDept, reference_number: ref } },
-      });
-    } catch { /* silent */ }
+      let fileBase64 = "";
+      let fileName = "";
+      let fileMimeType = "";
 
-    setJsRef(ref);
-    setJsSuccess(true);
-    setJsLoading(false);
+      if (jsFile) {
+        fileBase64 = await fileToBase64(jsFile);
+        fileName = `${jsCity}-${jsDept}-${new Date().getFullYear()}-${jsName}-${ref}.${jsFile.name.split(".").pop() || "pdf"}`.replace(/\s/g, "_");
+        fileMimeType = jsFile.type || "application/pdf";
+      }
+
+      const payload = {
+        type: "job_application",
+        full_name: jsName,
+        phone: jsPhone,
+        city: jsCity,
+        department: jsDept,
+        reference_number: ref,
+        file_base64: fileBase64,
+        file_name: fileName,
+        file_mime_type: fileMimeType,
+      };
+
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const result = await resp.json();
+
+      if (result.status !== "success") {
+        throw new Error(result.message || "فشل في إرسال الطلب");
+      }
+
+      // Notify Telegram (keep backend notification)
+      try {
+        await supabase.functions.invoke("notify-telegram", {
+          body: { type: "job_application", data: { full_name: jsName, phone: jsPhone, city: jsCity, department: jsDept, reference_number: ref } },
+        });
+      } catch { /* silent */ }
+
+      setJsRef(ref);
+      setJsSuccess(true);
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e.message || "حدث خطأ في إرسال الطلب", variant: "destructive" });
+    } finally {
+      setJsLoading(false);
+    }
   };
 
   const submitCompany = async () => {
@@ -106,31 +127,43 @@ const Careers = () => {
     setCoLoading(true);
     const ref = generateRef();
 
-    const { error } = await supabase.from("company_requests").insert({
-      company_name: coName,
-      contact_person: coPerson,
-      contact_email: coEmail,
-      contact_phone: coPhone,
-      hiring_needs: coNeeds,
-      job_titles: coTitles,
-      reference_number: ref,
-    });
-
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-      setCoLoading(false);
-      return;
-    }
-
     try {
-      await supabase.functions.invoke("notify-telegram", {
-        body: { type: "company_request", data: { company_name: coName, contact_person: coPerson, contact_email: coEmail, contact_phone: coPhone, hiring_needs: coNeeds, reference_number: ref } },
-      });
-    } catch { /* silent */ }
+      const payload = {
+        type: "company_request",
+        company_name: coName,
+        contact_person: coPerson,
+        contact_email: coEmail,
+        contact_phone: coPhone,
+        hiring_needs: coNeeds,
+        job_titles: coTitles,
+        reference_number: ref,
+      };
 
-    setCoRef(ref);
-    setCoSuccess(true);
-    setCoLoading(false);
+      const resp = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const result = await resp.json();
+
+      if (result.status !== "success") {
+        throw new Error(result.message || "فشل في إرسال الطلب");
+      }
+
+      // Notify Telegram
+      try {
+        await supabase.functions.invoke("notify-telegram", {
+          body: { type: "company_request", data: { company_name: coName, contact_person: coPerson, contact_email: coEmail, contact_phone: coPhone, hiring_needs: coNeeds, reference_number: ref } },
+        });
+      } catch { /* silent */ }
+
+      setCoRef(ref);
+      setCoSuccess(true);
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e.message || "حدث خطأ في إرسال الطلب", variant: "destructive" });
+    } finally {
+      setCoLoading(false);
+    }
   };
 
   return (
@@ -192,7 +225,7 @@ const Careers = () => {
                     </div>
                   </div>
                   <Button onClick={submitJobApp} disabled={jsLoading} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
-                    {jsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "إرسال الطلب"}
+                    {jsLoading ? <><Loader2 className="h-4 w-4 animate-spin ml-2" />جاري الإرسال...</> : "إرسال الطلب"}
                   </Button>
                 </div>
               )}
@@ -232,7 +265,7 @@ const Careers = () => {
                     <Input value={coTitles} onChange={(e) => setCoTitles(e.target.value)} className="text-right font-arabic" placeholder="مثال: محاسب، مهندس، مدير مبيعات" />
                   </div>
                   <Button onClick={submitCompany} disabled={coLoading} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
-                    {coLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "إرسال الطلب"}
+                    {coLoading ? <><Loader2 className="h-4 w-4 animate-spin ml-2" />جاري الإرسال...</> : "إرسال الطلب"}
                   </Button>
                 </div>
               )}
