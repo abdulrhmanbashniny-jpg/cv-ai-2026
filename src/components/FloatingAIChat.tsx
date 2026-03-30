@@ -161,9 +161,9 @@ const FloatingAIChat = () => {
                         : "bg-primary text-primary-foreground"
                     }`}
                   >
-                    <ReactMarkdown className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
-                      {msg.content}
-                    </ReactMarkdown>
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               ))}
