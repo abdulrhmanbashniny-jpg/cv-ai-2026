@@ -23,10 +23,8 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const result = reader.result as string;
-      // Remove the data:...;base64, prefix
-      const base64 = result.split(",")[1];
-      resolve(base64);
+      // Keep the full data URL prefix (e.g. data:application/pdf;base64,...)
+      resolve(reader.result as string);
     };
     reader.onerror = reject;
     reader.readAsDataURL(file);
@@ -84,26 +82,22 @@ const Careers = () => {
     const ref = generateRef();
 
     try {
-      let fileBase64 = "";
+      let fileData = "";
       let fileName = "";
-      let fileMimeType = "";
 
       if (jsFile) {
-        fileBase64 = await fileToBase64(jsFile);
-        fileName = `${jsCity}-${jsDept}-${new Date().getFullYear()}-${jsName}-${ref}.${jsFile.name.split(".").pop() || "pdf"}`.replace(/\s/g, "_");
-        fileMimeType = jsFile.type || "application/pdf";
+        fileData = await fileToBase64(jsFile);
+        fileName = jsFile.name;
       }
 
       const payload = {
-        type: "job_application",
-        full_name: jsName,
+        name: jsName,
         phone: jsPhone,
         city: jsCity,
-        department: jsDept,
-        reference_number: ref,
-        file_base64: fileBase64,
-        file_name: fileName,
-        file_mime_type: fileMimeType,
+        dept: jsDept,
+        ref: ref,
+        fileName: fileName,
+        fileData: fileData,
       };
 
       await fetch(scriptUrl, {
@@ -119,8 +113,20 @@ const Careers = () => {
         });
       } catch { /* silent */ }
 
+      // Notify Telegram (keep backend notification)
+      try {
+        await supabase.functions.invoke("notify-telegram", {
+          body: { type: "job_application", data: { full_name: jsName, phone: jsPhone, city: jsCity, department: jsDept, reference_number: ref } },
+        });
+      } catch { /* silent */ }
+
       setJsRef(ref);
       setJsSuccess(true);
+      setJsName("");
+      setJsPhone("");
+      setJsCity("");
+      setJsDept("");
+      setJsFile(null);
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message || "حدث خطأ في إرسال الطلب", variant: "destructive" });
     } finally {
