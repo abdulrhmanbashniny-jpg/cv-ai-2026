@@ -64,11 +64,15 @@ const Consultation = () => {
     const ref = generateRefNumber();
     setRefNumber(ref);
 
+    const disclaimer: Msg = {
+      role: "assistant",
+      content: `تنويه هام: هذا المساعد الذكي أداة استرشادية لتقديم معلومات عامة ولا يُغني عن الاستشارة المهنية أو القانونية المباشرة. استخدامك للدردشة يُعد موافقة صريحة وإخلاءً لمسؤولية المنصة عن أي قرارات تُبنى على هذه الردود. كيف يمكنني مساعدتك؟`,
+    };
     const greeting: Msg = {
       role: "assistant",
       content: `مرحباً ${visitorName}! أنا المستشار القانوني الذكي للأستاذ عبدالرحمن باشنيني. رقم استشارتك هو: **${ref}**\n\nكيف يمكنني مساعدتك في موضوع "${category}"؟ يرجى وصف مشكلتك بالتفصيل.`,
     };
-    setMessages([greeting]);
+    setMessages([disclaimer, greeting]);
     setStep("chat");
   };
 
