@@ -22,10 +22,7 @@ const validateSaudiPhone = (phone: string) => /^(05|5)\d{8}$/.test(phone.replace
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      // Keep the full data URL prefix (e.g. data:application/pdf;base64,...)
-      resolve(reader.result as string);
-    };
+    reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -34,7 +31,6 @@ const fileToBase64 = (file: File): Promise<string> => {
 const Careers = () => {
   const [scriptUrl, setScriptUrl] = useState(DEFAULT_SCRIPT_URL);
 
-  // Fetch Google Script URL from settings on mount
   useEffect(() => {
     const fetchUrl = async () => {
       try {
@@ -90,6 +86,7 @@ const Careers = () => {
         fileName = jsFile.name;
       }
 
+      // 1. Send to Google Apps Script
       const payload = {
         name: jsName,
         phone: jsPhone,
@@ -100,25 +97,31 @@ const Careers = () => {
         fileData: fileData,
       };
 
-      await fetch(scriptUrl, {
+      fetch(scriptUrl, {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(payload),
-      });
+      }).catch(() => {});
 
-      // Notify Telegram (keep backend notification)
-      try {
-        await supabase.functions.invoke("notify-telegram", {
-          body: { type: "job_application", data: { full_name: jsName, phone: jsPhone, city: jsCity, department: jsDept, reference_number: ref } },
-        });
-      } catch { /* silent */ }
+      // 2. Save to Supabase (dual-sync)
+      supabase.functions.invoke("admin-data", {
+        body: {
+          action: "insert",
+          table: "job_applications",
+          data: {
+            full_name: jsName,
+            phone: jsPhone,
+            city: jsCity,
+            department: jsDept,
+            reference_number: ref,
+          },
+        },
+      }).catch(() => {});
 
-      // Notify Telegram (keep backend notification)
-      try {
-        await supabase.functions.invoke("notify-telegram", {
-          body: { type: "job_application", data: { full_name: jsName, phone: jsPhone, city: jsCity, department: jsDept, reference_number: ref } },
-        });
-      } catch { /* silent */ }
+      // 3. Telegram notification (fire independently)
+      supabase.functions.invoke("notify-telegram", {
+        body: { type: "job_application", data: { full_name: jsName, phone: jsPhone, city: jsCity, department: jsDept, reference_number: ref } },
+      }).catch(() => {});
 
       setJsRef(ref);
       setJsSuccess(true);
@@ -155,18 +158,34 @@ const Careers = () => {
         reference_number: ref,
       };
 
-      await fetch(scriptUrl, {
+      // 1. Google Apps Script
+      fetch(scriptUrl, {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify(payload),
-      });
+      }).catch(() => {});
 
-      // Notify Telegram
-      try {
-        await supabase.functions.invoke("notify-telegram", {
-          body: { type: "company_request", data: { company_name: coName, contact_person: coPerson, contact_email: coEmail, contact_phone: coPhone, hiring_needs: coNeeds, reference_number: ref } },
-        });
-      } catch { /* silent */ }
+      // 2. Supabase dual-sync
+      supabase.functions.invoke("admin-data", {
+        body: {
+          action: "insert",
+          table: "company_requests",
+          data: {
+            company_name: coName,
+            contact_person: coPerson,
+            contact_email: coEmail,
+            contact_phone: coPhone,
+            hiring_needs: coNeeds,
+            job_titles: coTitles,
+            reference_number: ref,
+          },
+        },
+      }).catch(() => {});
+
+      // 3. Telegram
+      supabase.functions.invoke("notify-telegram", {
+        body: { type: "company_request", data: { company_name: coName, contact_person: coPerson, contact_email: coEmail, contact_phone: coPhone, hiring_needs: coNeeds, reference_number: ref } },
+      }).catch(() => {});
 
       setCoRef(ref);
       setCoSuccess(true);

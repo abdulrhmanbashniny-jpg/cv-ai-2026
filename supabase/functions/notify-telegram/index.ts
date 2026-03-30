@@ -22,7 +22,7 @@ serve(async (req) => {
     // Get settings from admin_settings table
     const { data: settings } = await supabase
       .from("admin_settings")
-      .select("setting_value")
+      .select("setting_key, setting_value")
       .in("setting_key", ["telegram_bot_token", "telegram_chat_id"]);
 
     const botToken = settings?.find((s: any) => s.setting_key === "telegram_bot_token")?.setting_value;
@@ -36,52 +36,51 @@ serve(async (req) => {
     }
 
     let message = "";
+    const typeLabel = type === "job_application" ? "طلب توظيف" : type === "company_request" ? "طلب شركة" : type === "consultation" ? "استشارة" : type;
 
     if (type === "job_application") {
-      message = `🆕 <b>طلب توظيف جديد</b>\n\n` +
+      message = `🚀 <b>عميل محتمل جديد!</b>\n\n` +
+        `📋 النوع: طلب توظيف\n` +
         `👤 الاسم: ${data.full_name}\n` +
         `📞 الجوال: ${data.phone}\n` +
         `🏙️ المدينة: ${data.city}\n` +
         `🏢 القسم: ${data.department}\n` +
-        `🔢 رقم المرجع: ${data.reference_number}`;
+        `🔢 المرجع: ${data.reference_number}\n\n` +
+        `📌 عرض التفاصيل في لوحة التحكم`;
     } else if (type === "company_request") {
-      message = `🏢 <b>طلب شركة جديد</b>\n\n` +
+      message = `🚀 <b>عميل محتمل جديد!</b>\n\n` +
+        `📋 النوع: طلب شركة\n` +
         `🏭 الشركة: ${data.company_name}\n` +
         `👤 المسؤول: ${data.contact_person}\n` +
         `📧 البريد: ${data.contact_email}\n` +
         `📞 الجوال: ${data.contact_phone}\n` +
         `💼 الاحتياجات: ${data.hiring_needs}\n` +
-        `🔢 رقم المرجع: ${data.reference_number}`;
+        `🔢 المرجع: ${data.reference_number}\n\n` +
+        `📌 عرض التفاصيل في لوحة التحكم`;
     } else if (type === "consultation") {
-      message = `💬 <b>استشارة جديدة</b>\n\n` +
+      message = `🚀 <b>عميل محتمل جديد!</b>\n\n` +
+        `📋 النوع: استشارة\n` +
         `👤 الاسم: ${data.visitor_name || "زائر"}\n` +
-        `📋 الفئة: ${data.issue_category}\n` +
-        `🔢 رقم المرجع: ${data.reference_number}\n` +
+        `📂 الفئة: ${data.issue_category}\n` +
+        `🔢 المرجع: ${data.reference_number}\n` +
         `📝 الملخص: ${data.summary || "بدون ملخص"}` +
-        (data.needs_human_review ? "\n\n⚠️ <b>يحتاج مراجعة بشرية</b>" : "");
+        (data.needs_human_review ? "\n\n⚠️ <b>يحتاج مراجعة بشرية</b>" : "") +
+        `\n\n📌 عرض التفاصيل في لوحة التحكم`;
     }
 
     if (message) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      // Try connector gateway first, fall back to direct API
       let telegramUrl: string;
       let telegramHeaders: Record<string, string>;
 
-      if (LOVABLE_API_KEY) {
-        // Check if TELEGRAM_API_KEY exists for connector
-        const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
-        if (TELEGRAM_API_KEY) {
-          telegramUrl = "https://connector-gateway.lovable.dev/telegram/sendMessage";
-          telegramHeaders = {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "X-Connection-Api-Key": TELEGRAM_API_KEY,
-            "Content-Type": "application/json",
-          };
-        } else {
-          // Direct Telegram API
-          telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-          telegramHeaders = { "Content-Type": "application/json" };
-        }
+      const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
+      if (LOVABLE_API_KEY && TELEGRAM_API_KEY) {
+        telegramUrl = "https://connector-gateway.lovable.dev/telegram/sendMessage";
+        telegramHeaders = {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": TELEGRAM_API_KEY,
+          "Content-Type": "application/json",
+        };
       } else {
         telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
         telegramHeaders = { "Content-Type": "application/json" };

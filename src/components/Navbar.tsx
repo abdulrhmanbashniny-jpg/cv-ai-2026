@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,6 +9,7 @@ const Navbar = () => {
     { label: "الرئيسية", href: "/" },
     { label: "بوابة التوظيف", href: "/careers" },
     { label: "الاستشارات الذكية", href: "/consultation" },
+    { label: "هدية CV", href: "/career-gift" },
   ];
 
   return (
