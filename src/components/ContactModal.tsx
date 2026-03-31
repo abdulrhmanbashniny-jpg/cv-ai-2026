@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Send, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ const ContactModal = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [reason, setReason] = useState("");
+  const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async () => {
@@ -20,9 +22,12 @@ const ContactModal = () => {
       toast({ title: "خطأ", description: "الاسم والسبب مطلوبان", variant: "destructive" });
       return;
     }
+    if (!consent) {
+      toast({ title: "خطأ", description: "يجب الموافقة على سياسة الخصوصية", variant: "destructive" });
+      return;
+    }
     setSending(true);
     try {
-      // 1. Save to contact_requests table via admin-data edge function
       await supabase.functions.invoke("admin-data", {
         body: {
           action: "insert",
@@ -31,7 +36,6 @@ const ContactModal = () => {
         },
       });
 
-      // 2. Trigger Telegram notification independently
       supabase.functions.invoke("notify-telegram", {
         body: {
           type: "contact_us",
@@ -40,7 +44,7 @@ const ContactModal = () => {
       }).catch(() => {});
 
       toast({ title: "تم الإرسال!", description: "سنتواصل معك قريباً" });
-      setName(""); setEmail(""); setPhone(""); setReason("");
+      setName(""); setEmail(""); setPhone(""); setReason(""); setConsent(false);
       setOpen(false);
     } catch {
       toast({ title: "خطأ", description: "حدث خطأ أثناء الإرسال", variant: "destructive" });
@@ -77,7 +81,22 @@ const ContactModal = () => {
             <label className="block font-arabic text-xs text-muted-foreground mb-1">سبب التواصل *</label>
             <Textarea value={reason} onChange={(e) => setReason(e.target.value)} className="text-right font-arabic" rows={3} placeholder="كيف يمكننا مساعدتك؟" />
           </div>
-          <Button onClick={handleSubmit} disabled={sending} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="contact-consent"
+              checked={consent}
+              onCheckedChange={(v) => setConsent(v === true)}
+              className="mt-1"
+            />
+            <label htmlFor="contact-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
+              أوافق على{" "}
+              <a href="/privacy-policy" target="_blank" className="text-primary underline hover:opacity-80">
+                سياسة الخصوصية
+              </a>{" "}
+              ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
+            </label>
+          </div>
+          <Button onClick={handleSubmit} disabled={sending || !consent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             إرسال
           </Button>

@@ -1,16 +1,13 @@
 import heroPortrait from "@/assets/hero-portrait.jpg";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, FileText, Briefcase, Download, Award, MapPin } from "lucide-react";
+import { MessageCircle, FileText, Briefcase, Award, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const HeroSection = () => {
-  const [showCvMenu, setShowCvMenu] = useState(false);
   const [heroName, setHeroName] = useState("عبدالرحمن باشنيني");
   const [heroBio, setHeroBio] = useState("مدير تطوير الأعمال | مدير أول الموارد البشرية والشؤون القانونية");
   const [heroImageUrl, setHeroImageUrl] = useState("");
-  const [showCvAr, setShowCvAr] = useState(true);
-  const [showCvEn, setShowCvEn] = useState(true);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -21,18 +18,14 @@ const HeroSection = () => {
         if (get("hero_name")) setHeroName(get("hero_name"));
         if (get("hero_bio")) setHeroBio(get("hero_bio"));
         if (get("hero_image_url")) setHeroImageUrl(get("hero_image_url"));
-        if (get("show_cv_ar") === "false") setShowCvAr(false);
-        if (get("show_cv_en") === "false") setShowCvEn(false);
       } catch { /* use defaults */ }
     };
     fetchSettings();
   }, []);
 
-  // Split name for styling (first word normal, rest gold)
   const nameParts = heroName.split(" ");
   const firstName = nameParts[0] || "";
   const lastName = nameParts.slice(1).join(" ") || "";
-
   const portraitSrc = heroImageUrl || heroPortrait;
 
   return (
@@ -90,37 +83,18 @@ const HeroSection = () => {
                 className="bg-gold-shimmer text-primary-foreground font-arabic text-lg px-8 py-6 rounded-lg glow-gold hover:opacity-90 transition-opacity"
               >
                 <MessageCircle className="ml-2 h-5 w-5" />
-                تحدث مع المساعد الذكي
+                استشر توأمي الرقمي
               </Button>
-              {(showCvAr || showCvEn) && (
-                <div className="relative">
-                  <Button 
-                    variant="outline" 
-                    size="lg"
-                    onClick={() => setShowCvMenu(!showCvMenu)}
-                    className="border-primary/40 text-primary font-arabic text-lg px-8 py-6 rounded-lg hover:bg-primary/10 transition-colors"
-                  >
-                    <FileText className="ml-2 h-5 w-5" />
-                    تحميل السيرة الذاتية
-                  </Button>
-                  {showCvMenu && (
-                    <div className="absolute top-full mt-2 right-0 bg-card border border-border rounded-lg shadow-xl p-2 min-w-[200px] z-20">
-                      {showCvAr && (
-                        <a href="/cv/CV-Ar.docx" download className="flex items-center gap-2 px-4 py-2 font-arabic text-sm text-foreground hover:bg-secondary rounded-md transition-colors">
-                          <Download className="h-4 w-4 text-primary" />
-                          السيرة الذاتية - عربي
-                        </a>
-                      )}
-                      {showCvEn && (
-                        <a href="/cv/CV-En.docx" download className="flex items-center gap-2 px-4 py-2 font-arabic text-sm text-foreground hover:bg-secondary rounded-md transition-colors">
-                          <Download className="h-4 w-4 text-primary" />
-                          Resume - English
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              <a href="/consultation">
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="border-primary/40 text-primary font-arabic text-lg px-8 py-6 rounded-lg hover:bg-primary/10 transition-colors"
+                >
+                  <FileText className="ml-2 h-5 w-5" />
+                  طلب استشارة رسمية
+                </Button>
+              </a>
             </div>
           </div>
 

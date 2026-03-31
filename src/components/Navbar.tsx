@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navLinks = [
     { label: "الرئيسية", href: "/" },
-    { label: "بوابة التوظيف", href: "/careers" },
-    { label: "الاستشارات الذكية", href: "/consultation" },
-    { label: "هدية CV", href: "/career-gift" },
+    { label: "خدمات الشركات", href: "/careers" },
+    { label: "المستشار العمالي", href: "/consultation" },
+    { label: "بناء سيرة ذاتية", href: "/career-gift" },
   ];
 
   return (
@@ -32,11 +31,6 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
-            <a href="/consultation">
-              <Button size="sm" className="bg-gold-shimmer text-primary-foreground font-arabic glow-gold hover:opacity-90">
-                تحدث مع المساعد
-              </Button>
-            </a>
           </div>
 
           {/* Mobile Toggle */}
@@ -60,11 +54,6 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
-            <a href="/consultation">
-              <Button size="sm" className="w-full mt-4 bg-gold-shimmer text-primary-foreground font-arabic">
-                تحدث مع المساعد
-              </Button>
-            </a>
           </div>
         )}
       </div>
