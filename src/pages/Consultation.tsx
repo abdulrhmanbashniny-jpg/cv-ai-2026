@@ -4,16 +4,17 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Bot, User, CheckCircle, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Send, Bot, User, CheckCircle, Loader2, Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
+import { v4 as uuidv4 } from "uuid";
 
 const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyfncdQeFaRkC_FVrnZKeYmcoZ4S5_qml_ujzz4WMz6vRAfFynROBcSgRPt3t-KcaXd/exec";
 
 type Msg = { role: "user" | "assistant"; content: string };
-
-type Step = "name" | "category" | "chat" | "done";
+type Step = "info" | "chat" | "done";
 
 const categories = [
   "نظام العمل السعودي",
@@ -34,14 +35,18 @@ const generateRefNumber = () => {
 
 const Consultation = () => {
   const [scriptUrl, setScriptUrl] = useState(DEFAULT_SCRIPT_URL);
-  const [step, setStep] = useState<Step>("name");
+  const [step, setStep] = useState<Step>("info");
   const [visitorName, setVisitorName] = useState("");
+  const [visitorPhone, setVisitorPhone] = useState("");
   const [category, setCategory] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [refNumber, setRefNumber] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,9 +65,11 @@ const Consultation = () => {
   }, []);
 
   const startChat = () => {
-    if (!visitorName.trim() || !category) return;
+    if (!visitorName.trim() || !visitorPhone.trim() || !category || !consent) return;
     const ref = generateRefNumber();
+    const sid = uuidv4();
     setRefNumber(ref);
+    setSessionId(sid);
 
     const disclaimer: Msg = {
       role: "assistant",
@@ -76,18 +83,55 @@ const Consultation = () => {
     setStep("chat");
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMsg: Msg = { role: "user", content: input.trim() };
-    const allMessages = [...messages, userMsg];
-    setMessages(allMessages);
-    setInput("");
-    setIsLoading(true);
-
-    let assistantSoFar = "";
+  const handleFileUpload = async (file: File) => {
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: "خطأ", description: "حجم الملف كبير جداً (الحد 10 ميجابايت)", variant: "destructive" });
+      return;
+    }
 
     try {
+      const ext = file.name.split(".").pop();
+      const path = `chat-uploads/${sessionId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("cv-uploads").upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("cv-uploads").getPublicUrl(path);
+
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const userMsg: Msg = { role: "user", content: `[مرفق: ${file.name}]` };
+          const allMessages = [...messages, userMsg];
+          setMessages(allMessages);
+          setIsLoading(true);
+          await streamChat(allMessages, [
+            { type: "image_url", image_url: { url: reader.result as string } },
+            { type: "text", text: `المستخدم أرفق صورة "${file.name}". حلل محتواها.` },
+          ]);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const userMsg: Msg = { role: "user", content: `أرفقت ملف: ${file.name}\nرابط: ${urlData.publicUrl}\n\nالرجاء مراجعته.` };
+        const allMessages = [...messages, userMsg];
+        setMessages(allMessages);
+        setIsLoading(true);
+        await streamChat(allMessages);
+      }
+    } catch {
+      toast({ title: "خطأ", description: "فشل رفع الملف", variant: "destructive" });
+    }
+  };
+
+  const streamChat = async (allMessages: Msg[], multimodalContent?: any[]) => {
+    let assistantSoFar = "";
+    try {
+      const body: any = {
+        messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
+        agent: "legal_advisor",
+        session_id: sessionId,
+      };
+      if (multimodalContent) body.multimodal_content = multimodalContent;
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
         {
@@ -96,10 +140,7 @@ const Consultation = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({
-            messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
-            agent: "legal_advisor",
-          }),
+          body: JSON.stringify(body),
         }
       );
 
@@ -150,73 +191,26 @@ const Consultation = () => {
     }
   };
 
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    const userMsg: Msg = { role: "user", content: input.trim() };
+    const allMessages = [...messages, userMsg];
+    setMessages(allMessages);
+    setInput("");
+    setIsLoading(true);
+    await streamChat(allMessages);
+  };
+
   const endConsultation = async () => {
     setIsLoading(true);
-
-    const chatSummary = messages
-      .filter((m) => m.role === "user")
-      .map((m) => m.content)
-      .join(" | ");
-
+    const chatSummary = messages.filter((m) => m.role === "user").map((m) => m.content).join(" | ");
     const summary = chatSummary.slice(0, 500);
+    const needsReview = messages.some((m) => m.role === "assistant" && (m.content.includes("سأستشير") || m.content.includes("أعود إليك")));
+    const aiResponse = messages.filter((m) => m.role === "assistant").map((m) => m.content).join("\n---\n");
 
-    const needsReview = messages.some(
-      (m) =>
-        m.role === "assistant" &&
-        (m.content.includes("سأستشير") || m.content.includes("أعود إليك"))
-    );
-
-    const aiResponse = messages
-      .filter((m) => m.role === "assistant")
-      .map((m) => m.content)
-      .join("\n---\n");
-
-    // 1. Send to Google Apps Script (fire & forget)
-    fetch(scriptUrl, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({
-        type: "consultation",
-        visitor_name: visitorName,
-        issue_category: category,
-        reference_number: refNumber,
-        summary,
-        needs_human_review: needsReview,
-        ai_response: aiResponse,
-        status: "closed",
-      }),
-    }).catch(() => {});
-
-    // 2. Save to Supabase (dual-sync)
-    supabase.functions.invoke("admin-data", {
-      body: {
-        action: "insert",
-        table: "consultations",
-        data: {
-          visitor_name: visitorName,
-          issue_category: category,
-          reference_number: refNumber,
-          summary,
-          needs_human_review: needsReview,
-          ai_response: aiResponse,
-          status: "closed",
-        },
-      },
-    }).catch(() => {});
-
-    // 3. Telegram notification (fire independently)
-    supabase.functions.invoke("notify-telegram", {
-      body: {
-        type: "consultation",
-        data: {
-          visitor_name: visitorName,
-          issue_category: category,
-          reference_number: refNumber,
-          summary,
-          needs_human_review: needsReview,
-        },
-      },
-    }).catch(() => {});
+    fetch(scriptUrl, { method: "POST", mode: "no-cors", body: JSON.stringify({ type: "consultation", visitor_name: visitorName, issue_category: category, reference_number: refNumber, summary, needs_human_review: needsReview, ai_response: aiResponse, status: "closed" }) }).catch(() => {});
+    supabase.functions.invoke("admin-data", { body: { action: "insert", table: "consultations", data: { visitor_name: visitorName, issue_category: category, reference_number: refNumber, summary, needs_human_review: needsReview, ai_response: aiResponse, status: "closed" } } }).catch(() => {});
+    supabase.functions.invoke("notify-telegram", { body: { type: "consultation", data: { visitor_name: visitorName, issue_category: category, reference_number: refNumber, summary, needs_human_review: needsReview } } }).catch(() => {});
 
     setStep("done");
     setIsLoading(false);
@@ -229,44 +223,37 @@ const Consultation = () => {
         <div className="container mx-auto px-6 max-w-3xl">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold font-arabic text-foreground mb-4">
-              الاستشارات <span className="text-gradient-gold">الذكية</span>
+              المستشار <span className="text-gradient-gold">العمالي</span>
             </h1>
             <p className="text-muted-foreground font-arabic">
               احصل على استشارة فورية في نظام العمل والموارد البشرية
             </p>
           </div>
 
-          {step === "name" && (
-            <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto space-y-6">
+          {step === "info" && (
+            <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto space-y-5">
               <div>
-                <label className="block font-arabic text-sm text-foreground mb-2">الاسم</label>
-                <Input
-                  value={visitorName}
-                  onChange={(e) => setVisitorName(e.target.value)}
-                  placeholder="أدخل اسمك"
-                  className="text-right font-arabic"
-                />
+                <label className="block font-arabic text-sm text-foreground mb-2">الاسم *</label>
+                <Input value={visitorName} onChange={(e) => setVisitorName(e.target.value)} placeholder="أدخل اسمك" className="text-right font-arabic" />
               </div>
               <div>
-                <label className="block font-arabic text-sm text-foreground mb-2">فئة الاستشارة</label>
+                <label className="block font-arabic text-sm text-foreground mb-2">رقم الجوال *</label>
+                <Input value={visitorPhone} onChange={(e) => setVisitorPhone(e.target.value)} placeholder="05XXXXXXXX" className="font-mono text-sm" dir="ltr" />
+              </div>
+              <div>
+                <label className="block font-arabic text-sm text-foreground mb-2">فئة الاستشارة *</label>
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="text-right font-arabic">
-                    <SelectValue placeholder="اختر الفئة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c} value={c} className="font-arabic">
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="text-right font-arabic"><SelectValue placeholder="اختر الفئة" /></SelectTrigger>
+                  <SelectContent>{categories.map((c) => <SelectItem key={c} value={c} className="font-arabic">{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <Button
-                onClick={startChat}
-                disabled={!visitorName.trim() || !category}
-                className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold"
-              >
+              <div className="flex items-start gap-2">
+                <Checkbox id="consult-consent" checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-1" />
+                <label htmlFor="consult-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
+                  أوافق على <a href="/privacy-policy" target="_blank" className="text-primary underline hover:opacity-80">سياسة الخصوصية</a> ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
+                </label>
+              </div>
+              <Button onClick={startChat} disabled={!visitorName.trim() || !visitorPhone.trim() || !category || !consent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
                 بدء الاستشارة
               </Button>
             </div>
@@ -275,9 +262,7 @@ const Consultation = () => {
           {step === "chat" && (
             <div className="bg-card border border-border rounded-xl overflow-hidden flex flex-col" style={{ height: "60vh" }}>
               <div className="bg-secondary/50 px-4 py-3 border-b border-border flex items-center justify-between">
-                <Button size="sm" variant="destructive" onClick={endConsultation} className="font-arabic text-xs">
-                  إنهاء الاستشارة
-                </Button>
+                <Button size="sm" variant="destructive" onClick={endConsultation} className="font-arabic text-xs">إنهاء الاستشارة</Button>
                 <span className="text-xs text-muted-foreground font-arabic">رقم المرجع: {refNumber}</span>
               </div>
 
@@ -288,42 +273,28 @@ const Consultation = () => {
                       {msg.role === "assistant" ? <Bot className="h-4 w-4 text-primary" /> : <User className="h-4 w-4 text-foreground" />}
                     </div>
                     <div className={`max-w-[80%] rounded-xl px-4 py-3 ${msg.role === "user" ? "bg-primary/20 text-foreground" : "bg-secondary text-foreground"}`}>
-                      <div className="font-arabic text-sm prose prose-sm prose-invert max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
+                      <div className="font-arabic text-sm prose prose-sm prose-invert max-w-none"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
                     </div>
                   </div>
                 ))}
                 {isLoading && messages[messages.length - 1]?.role === "user" && (
                   <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="bg-secondary rounded-xl px-4 py-3">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    </div>
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center"><Bot className="h-4 w-4 text-primary" /></div>
+                    <div className="bg-secondary rounded-xl px-4 py-3"><Loader2 className="h-4 w-4 animate-spin text-primary" /></div>
                   </div>
                 )}
                 <div ref={chatEndRef} />
               </div>
 
               <div className="p-4 border-t border-border flex gap-2">
-                <Button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || isLoading}
-                  size="icon"
-                  className="bg-primary text-primary-foreground shrink-0"
-                >
+                <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileUpload(f); e.target.value = ""; }} />
+                <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading} className="text-muted-foreground hover:text-primary shrink-0">
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Button onClick={sendMessage} disabled={!input.trim() || isLoading} size="icon" className="bg-primary text-primary-foreground shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                  placeholder="اكتب رسالتك..."
-                  className="text-right font-arabic"
-                  disabled={isLoading}
-                />
+                <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="اكتب رسالتك..." className="text-right font-arabic" disabled={isLoading} />
               </div>
             </div>
           )}
@@ -332,15 +303,9 @@ const Consultation = () => {
             <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto text-center">
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-xl font-bold font-arabic text-foreground mb-2">تم إنهاء الاستشارة</h3>
-              <p className="text-muted-foreground font-arabic mb-4">
-                رقم المرجع الخاص بك: <span className="text-primary font-bold">{refNumber}</span>
-              </p>
-              <p className="text-muted-foreground font-arabic text-sm mb-6">
-                احتفظ برقم المرجع للمتابعة. سيقوم الأستاذ عبدالرحمن بمراجعة استشارتك.
-              </p>
-              <Button onClick={() => window.location.href = "/"} className="bg-gold-shimmer text-primary-foreground font-arabic">
-                العودة للرئيسية
-              </Button>
+              <p className="text-muted-foreground font-arabic mb-4">رقم المرجع: <span className="text-primary font-bold">{refNumber}</span></p>
+              <p className="text-muted-foreground font-arabic text-sm mb-6">احتفظ برقم المرجع للمتابعة.</p>
+              <Button onClick={() => window.location.href = "/"} className="bg-gold-shimmer text-primary-foreground font-arabic">العودة للرئيسية</Button>
             </div>
           )}
         </div>

@@ -16,6 +16,7 @@ import AdminIntegrations from "@/components/admin/AdminIntegrations";
 import AdminContent from "@/components/admin/AdminContent";
 import AdminChatHistory from "@/components/admin/AdminChatHistory";
 import AdminAgentPrompts from "@/components/admin/AdminAgentPrompts";
+import AdminCAIO from "@/components/admin/AdminCAIO";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(false);
@@ -196,6 +197,7 @@ const Admin = () => {
     chatHistory: "سجل المحادثات",
     ai: "إدارة الذكاء الاصطناعي",
     agentPrompts: "إعدادات الوكلاء",
+    caio: "المحلل الذكي (CAIO)",
     content: "إدارة المحتوى",
     integrations: "التكاملات",
     settings: "الإعدادات",
@@ -235,6 +237,9 @@ const Admin = () => {
               )}
               {activeTab === "content" && (
                 <AdminContent settings={settings} onSave={saveSettings} />
+              )}
+              {activeTab === "caio" && (
+                <AdminCAIO chatLogs={chatLogs} consultations={consultations} jobApps={jobApps} companyReqs={companyReqs} contactMessages={contactMessages} />
               )}
               {activeTab === "integrations" && (
                 <AdminIntegrations settings={settings} onSave={saveSettings} />

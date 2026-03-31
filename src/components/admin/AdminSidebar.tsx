@@ -1,4 +1,4 @@
-import { LayoutDashboard, Inbox, Brain, Puzzle, FileText, LogOut, MessageCircle, Settings, Bot, Cog } from "lucide-react";
+import { LayoutDashboard, Inbox, Brain, Puzzle, FileText, LogOut, MessageCircle, Bot, Cog, TrendingUp } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +18,7 @@ const items = [
   { title: "سجل المحادثات", value: "chatHistory", icon: MessageCircle },
   { title: "إدارة الذكاء", value: "ai", icon: Brain },
   { title: "إعدادات الوكلاء", value: "agentPrompts", icon: Bot },
+  { title: "المحلل الذكي (CAIO)", value: "caio", icon: TrendingUp },
   { title: "إدارة المحتوى", value: "content", icon: FileText },
   { title: "التكاملات", value: "integrations", icon: Puzzle },
   { title: "الإعدادات", value: "settings", icon: Cog },

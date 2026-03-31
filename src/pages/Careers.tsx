@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Building2, Upload, CheckCircle, Loader2 } from "lucide-react";
@@ -49,6 +50,7 @@ const Careers = () => {
   const [jsCity, setJsCity] = useState("");
   const [jsDept, setJsDept] = useState("");
   const [jsFile, setJsFile] = useState<File | null>(null);
+  const [jsConsent, setJsConsent] = useState(false);
   const [jsLoading, setJsLoading] = useState(false);
   const [jsSuccess, setJsSuccess] = useState(false);
   const [jsRef, setJsRef] = useState("");
@@ -60,6 +62,7 @@ const Careers = () => {
   const [coPhone, setCoPhone] = useState("");
   const [coNeeds, setCoNeeds] = useState("");
   const [coTitles, setCoTitles] = useState("");
+  const [coConsent, setCoConsent] = useState(false);
   const [coLoading, setCoLoading] = useState(false);
   const [coSuccess, setCoSuccess] = useState(false);
   const [coRef, setCoRef] = useState("");
@@ -67,6 +70,10 @@ const Careers = () => {
   const submitJobApp = async () => {
     if (!jsName || !jsPhone || !jsCity || !jsDept) {
       toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" });
+      return;
+    }
+    if (!jsConsent) {
+      toast({ title: "خطأ", description: "يجب الموافقة على سياسة الخصوصية", variant: "destructive" });
       return;
     }
     if (!validateSaudiPhone(jsPhone)) {
@@ -130,6 +137,7 @@ const Careers = () => {
       setJsCity("");
       setJsDept("");
       setJsFile(null);
+      setJsConsent(false);
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message || "حدث خطأ في إرسال الطلب", variant: "destructive" });
     } finally {
@@ -140,6 +148,10 @@ const Careers = () => {
   const submitCompany = async () => {
     if (!coName || !coPerson || !coEmail || !coPhone || !coNeeds || !coTitles) {
       toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" });
+      return;
+    }
+    if (!coConsent) {
+      toast({ title: "خطأ", description: "يجب الموافقة على سياسة الخصوصية", variant: "destructive" });
       return;
     }
 
@@ -254,7 +266,13 @@ const Careers = () => {
                       </label>
                     </div>
                   </div>
-                  <Button onClick={submitJobApp} disabled={jsLoading} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
+                  <div className="flex items-start gap-2">
+                    <Checkbox id="js-consent" checked={jsConsent} onCheckedChange={(v) => setJsConsent(v === true)} className="mt-1" />
+                    <label htmlFor="js-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
+                      أوافق على <a href="/privacy-policy" target="_blank" className="text-primary underline hover:opacity-80">سياسة الخصوصية</a> ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
+                    </label>
+                  </div>
+                  <Button onClick={submitJobApp} disabled={jsLoading || !jsConsent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
                     {jsLoading ? <><Loader2 className="h-4 w-4 animate-spin ml-2" />جاري الإرسال...</> : "إرسال الطلب"}
                   </Button>
                 </div>
@@ -294,7 +312,13 @@ const Careers = () => {
                     <label className="block font-arabic text-sm text-foreground mb-1">المسميات الوظيفية *</label>
                     <Input value={coTitles} onChange={(e) => setCoTitles(e.target.value)} className="text-right font-arabic" placeholder="مثال: محاسب، مهندس، مدير مبيعات" />
                   </div>
-                  <Button onClick={submitCompany} disabled={coLoading} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
+                  <div className="flex items-start gap-2">
+                    <Checkbox id="co-consent" checked={coConsent} onCheckedChange={(v) => setCoConsent(v === true)} className="mt-1" />
+                    <label htmlFor="co-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
+                      أوافق على <a href="/privacy-policy" target="_blank" className="text-primary underline hover:opacity-80">سياسة الخصوصية</a> ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
+                    </label>
+                  </div>
+                  <Button onClick={submitCompany} disabled={coLoading || !coConsent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
                     {coLoading ? <><Loader2 className="h-4 w-4 animate-spin ml-2" />جاري الإرسال...</> : "إرسال الطلب"}
                   </Button>
                 </div>
