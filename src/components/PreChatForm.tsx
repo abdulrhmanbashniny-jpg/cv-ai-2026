@@ -73,9 +73,12 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
           ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
         </label>
       </div>
+      {consentError && (
+        <p className="text-destructive text-xs font-arabic text-center">يجب الموافقة على سياسة الخصوصية أولاً</p>
+      )}
       <Button
         onClick={handleSubmit}
-        disabled={!name.trim() || !phone.trim() || !consent}
+        disabled={!name.trim() || !phone.trim()}
         className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold"
       >
         بدء المحادثة
