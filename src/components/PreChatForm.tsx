@@ -14,9 +14,15 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
   const handleSubmit = () => {
-    if (!name.trim() || !phone.trim() || !consent) return;
+    if (!name.trim() || !phone.trim()) return;
+    if (!consent) {
+      setConsentError(true);
+      return;
+    }
+    setConsentError(false);
     const sessionId = uuidv4();
     onSubmit({ name: name.trim(), phone: phone.trim(), sessionId });
   };
