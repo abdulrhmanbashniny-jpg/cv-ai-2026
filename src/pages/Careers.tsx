@@ -150,6 +150,10 @@ const Careers = () => {
       toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" });
       return;
     }
+    if (!coConsent) {
+      toast({ title: "خطأ", description: "يجب الموافقة على سياسة الخصوصية", variant: "destructive" });
+      return;
+    }
 
     setCoLoading(true);
     const ref = generateRef();
