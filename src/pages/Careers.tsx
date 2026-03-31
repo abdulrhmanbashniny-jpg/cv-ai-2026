@@ -266,7 +266,13 @@ const Careers = () => {
                       </label>
                     </div>
                   </div>
-                  <Button onClick={submitJobApp} disabled={jsLoading} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
+                  <div className="flex items-start gap-2">
+                    <Checkbox id="js-consent" checked={jsConsent} onCheckedChange={(v) => setJsConsent(v === true)} className="mt-1" />
+                    <label htmlFor="js-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
+                      أوافق على <a href="/privacy-policy" target="_blank" className="text-primary underline hover:opacity-80">سياسة الخصوصية</a> ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
+                    </label>
+                  </div>
+                  <Button onClick={submitJobApp} disabled={jsLoading || !jsConsent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
                     {jsLoading ? <><Loader2 className="h-4 w-4 animate-spin ml-2" />جاري الإرسال...</> : "إرسال الطلب"}
                   </Button>
                 </div>
