@@ -72,6 +72,10 @@ const Careers = () => {
       toast({ title: "خطأ", description: "يرجى ملء جميع الحقول", variant: "destructive" });
       return;
     }
+    if (!jsConsent) {
+      toast({ title: "خطأ", description: "يجب الموافقة على سياسة الخصوصية", variant: "destructive" });
+      return;
+    }
     if (!validateSaudiPhone(jsPhone)) {
       toast({ title: "خطأ", description: "رقم الجوال غير صحيح (05XXXXXXXX)", variant: "destructive" });
       return;
