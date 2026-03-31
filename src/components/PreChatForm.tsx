@@ -62,7 +62,7 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
         <Checkbox
           id="pdpl-consent"
           checked={consent}
-          onCheckedChange={(v) => setConsent(v === true)}
+          onCheckedChange={(v) => { setConsent(v === true); if (v === true) setConsentError(false); }}
           className="mt-1"
         />
         <label htmlFor="pdpl-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">

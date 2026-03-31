@@ -118,7 +118,7 @@ const AdminChatHistory = ({ chatLogs, consultations, onRefresh }: AdminChatHisto
                       : "border-transparent hover:bg-secondary/30"
                   }`}
                 >
-                  <span className="font-arabic text-sm text-muted-foreground">رسائل بدون جلسة ({orphanLogs.length})</span>
+                  <span className="font-arabic text-sm text-muted-foreground">محادثات الزوار السابقة ({orphanLogs.length})</span>
                 </button>
               )}
             </div>

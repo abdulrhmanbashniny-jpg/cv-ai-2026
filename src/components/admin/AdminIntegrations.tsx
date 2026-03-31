@@ -204,8 +204,19 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <label className="block font-arabic text-xs text-muted-foreground mb-1">Service Account JSON</label>
-              <Textarea value={driveJson} onChange={(e) => setDriveJson(e.target.value)} className="font-mono text-xs" dir="ltr" rows={5} placeholder='{"type": "service_account", ...}' />
+              <label className="block font-arabic text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                Service Account JSON
+                <button type="button" onClick={() => setShowDriveJson(!showDriveJson)} className="text-muted-foreground hover:text-foreground">
+                  {showDriveJson ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                </button>
+              </label>
+              {showDriveJson ? (
+                <Textarea value={driveJson} onChange={(e) => setDriveJson(e.target.value)} className="font-mono text-xs" dir="ltr" rows={5} placeholder='{"type": "service_account", ...}' />
+              ) : (
+                <div className="bg-secondary/50 border border-border rounded-md p-3 font-mono text-xs text-muted-foreground" dir="ltr">
+                  {driveJson ? "••••••••••••••••••••" : "لم يتم إدخال بيانات"}
+                </div>
+              )}
             </div>
             <div>
               <label className="block font-arabic text-xs text-muted-foreground mb-1">Folder ID</label>

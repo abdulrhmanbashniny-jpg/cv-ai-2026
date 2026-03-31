@@ -87,7 +87,7 @@ const ContactModal = () => {
             <Checkbox
               id="contact-consent"
               checked={consent}
-              onCheckedChange={(v) => setConsent(v === true)}
+              onCheckedChange={(v) => { setConsent(v === true); if (v === true) setConsentError(false); }}
               className="mt-1"
             />
             <label htmlFor="contact-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
