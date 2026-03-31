@@ -16,6 +16,7 @@ const ContactModal = () => {
   const [reason, setReason] = useState("");
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
   const handleSubmit = async () => {
     if (!name || !reason) {
@@ -23,9 +24,10 @@ const ContactModal = () => {
       return;
     }
     if (!consent) {
-      toast({ title: "خطأ", description: "يجب الموافقة على سياسة الخصوصية", variant: "destructive" });
+      setConsentError(true);
       return;
     }
+    setConsentError(false);
     setSending(true);
     try {
       await supabase.functions.invoke("admin-data", {
