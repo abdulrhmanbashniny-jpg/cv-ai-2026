@@ -139,7 +139,12 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
         <CardContent className="space-y-3">
           <div>
             <label className="block font-arabic text-xs text-muted-foreground mb-1">Bot Token</label>
-            <Input value={botToken} onChange={(e) => setBotToken(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="123456:ABC-DEF..." />
+            <div className="relative">
+              <Input type={showBotToken ? "text" : "password"} value={botToken} onChange={(e) => setBotToken(e.target.value)} className="font-mono text-sm pr-9" dir="ltr" placeholder="123456:ABC-DEF..." />
+              <button type="button" onClick={() => setShowBotToken(!showBotToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showBotToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block font-arabic text-xs text-muted-foreground mb-1">Chat ID</label>
