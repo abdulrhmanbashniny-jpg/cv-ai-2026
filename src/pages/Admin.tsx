@@ -197,6 +197,7 @@ const Admin = () => {
     chatHistory: "سجل المحادثات",
     ai: "إدارة الذكاء الاصطناعي",
     agentPrompts: "إعدادات الوكلاء",
+    caio: "المحلل الذكي (CAIO)",
     content: "إدارة المحتوى",
     integrations: "التكاملات",
     settings: "الإعدادات",
