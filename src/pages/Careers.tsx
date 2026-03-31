@@ -62,6 +62,7 @@ const Careers = () => {
   const [coPhone, setCoPhone] = useState("");
   const [coNeeds, setCoNeeds] = useState("");
   const [coTitles, setCoTitles] = useState("");
+  const [coConsent, setCoConsent] = useState(false);
   const [coLoading, setCoLoading] = useState(false);
   const [coSuccess, setCoSuccess] = useState(false);
   const [coRef, setCoRef] = useState("");
