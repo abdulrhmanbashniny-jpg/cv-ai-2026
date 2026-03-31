@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Brain, HardDrive, CheckCircle, XCircle, Loader2, Save, FileCode2 } from "lucide-react";
+import { Send, Brain, HardDrive, CheckCircle, XCircle, Loader2, Save, FileCode2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
