@@ -137,6 +137,7 @@ const Careers = () => {
       setJsCity("");
       setJsDept("");
       setJsFile(null);
+      setJsConsent(false);
     } catch (e: any) {
       toast({ title: "خطأ", description: e.message || "حدث خطأ في إرسال الطلب", variant: "destructive" });
     } finally {
