@@ -312,7 +312,13 @@ const Careers = () => {
                     <label className="block font-arabic text-sm text-foreground mb-1">المسميات الوظيفية *</label>
                     <Input value={coTitles} onChange={(e) => setCoTitles(e.target.value)} className="text-right font-arabic" placeholder="مثال: محاسب، مهندس، مدير مبيعات" />
                   </div>
-                  <Button onClick={submitCompany} disabled={coLoading} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
+                  <div className="flex items-start gap-2">
+                    <Checkbox id="co-consent" checked={coConsent} onCheckedChange={(v) => setCoConsent(v === true)} className="mt-1" />
+                    <label htmlFor="co-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
+                      أوافق على <a href="/privacy-policy" target="_blank" className="text-primary underline hover:opacity-80">سياسة الخصوصية</a> ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
+                    </label>
+                  </div>
+                  <Button onClick={submitCompany} disabled={coLoading || !coConsent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
                     {coLoading ? <><Loader2 className="h-4 w-4 animate-spin ml-2" />جاري الإرسال...</> : "إرسال الطلب"}
                   </Button>
                 </div>
