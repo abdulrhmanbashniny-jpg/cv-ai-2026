@@ -50,6 +50,7 @@ const Careers = () => {
   const [jsCity, setJsCity] = useState("");
   const [jsDept, setJsDept] = useState("");
   const [jsFile, setJsFile] = useState<File | null>(null);
+  const [jsConsent, setJsConsent] = useState(false);
   const [jsLoading, setJsLoading] = useState(false);
   const [jsSuccess, setJsSuccess] = useState(false);
   const [jsRef, setJsRef] = useState("");
