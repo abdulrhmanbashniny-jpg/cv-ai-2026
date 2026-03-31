@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Brain, HardDrive, CheckCircle, XCircle, Loader2, Save, FileCode2 } from "lucide-react";
+import { Send, Brain, HardDrive, CheckCircle, XCircle, Loader2, Save, FileCode2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -33,6 +33,8 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
   const [driveLogs, setDriveLogs] = useState<string[] | null>(null);
   const [testingScript, setTestingScript] = useState(false);
   const [scriptStatus, setScriptStatus] = useState<boolean | null>(null);
+  const [showBotToken, setShowBotToken] = useState(false);
+  const [showDriveJson, setShowDriveJson] = useState(false);
 
   const testTelegram = async () => {
     setTestingTelegram(true);
@@ -137,7 +139,12 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
         <CardContent className="space-y-3">
           <div>
             <label className="block font-arabic text-xs text-muted-foreground mb-1">Bot Token</label>
-            <Input value={botToken} onChange={(e) => setBotToken(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="123456:ABC-DEF..." />
+            <div className="relative">
+              <Input type={showBotToken ? "text" : "password"} value={botToken} onChange={(e) => setBotToken(e.target.value)} className="font-mono text-sm pr-9" dir="ltr" placeholder="123456:ABC-DEF..." />
+              <button type="button" onClick={() => setShowBotToken(!showBotToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showBotToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block font-arabic text-xs text-muted-foreground mb-1">Chat ID</label>
@@ -197,8 +204,19 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <label className="block font-arabic text-xs text-muted-foreground mb-1">Service Account JSON</label>
-              <Textarea value={driveJson} onChange={(e) => setDriveJson(e.target.value)} className="font-mono text-xs" dir="ltr" rows={5} placeholder='{"type": "service_account", ...}' />
+              <label className="block font-arabic text-xs text-muted-foreground mb-1 flex items-center gap-2">
+                Service Account JSON
+                <button type="button" onClick={() => setShowDriveJson(!showDriveJson)} className="text-muted-foreground hover:text-foreground">
+                  {showDriveJson ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                </button>
+              </label>
+              {showDriveJson ? (
+                <Textarea value={driveJson} onChange={(e) => setDriveJson(e.target.value)} className="font-mono text-xs" dir="ltr" rows={5} placeholder='{"type": "service_account", ...}' />
+              ) : (
+                <div className="bg-secondary/50 border border-border rounded-md p-3 font-mono text-xs text-muted-foreground" dir="ltr">
+                  {driveJson ? "••••••••••••••••••••" : "لم يتم إدخال بيانات"}
+                </div>
+              )}
             </div>
             <div>
               <label className="block font-arabic text-xs text-muted-foreground mb-1">Folder ID</label>

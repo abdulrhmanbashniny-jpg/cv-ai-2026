@@ -16,6 +16,7 @@ const ContactModal = () => {
   const [reason, setReason] = useState("");
   const [consent, setConsent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
   const handleSubmit = async () => {
     if (!name || !reason) {
@@ -23,9 +24,10 @@ const ContactModal = () => {
       return;
     }
     if (!consent) {
-      toast({ title: "خطأ", description: "يجب الموافقة على سياسة الخصوصية", variant: "destructive" });
+      setConsentError(true);
       return;
     }
+    setConsentError(false);
     setSending(true);
     try {
       await supabase.functions.invoke("admin-data", {
@@ -85,7 +87,7 @@ const ContactModal = () => {
             <Checkbox
               id="contact-consent"
               checked={consent}
-              onCheckedChange={(v) => setConsent(v === true)}
+              onCheckedChange={(v) => { setConsent(v === true); if (v === true) setConsentError(false); }}
               className="mt-1"
             />
             <label htmlFor="contact-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
@@ -96,7 +98,10 @@ const ContactModal = () => {
               ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
             </label>
           </div>
-          <Button onClick={handleSubmit} disabled={sending || !consent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
+          {consentError && (
+            <p className="text-destructive text-xs font-arabic text-center">يجب الموافقة على سياسة الخصوصية أولاً</p>
+          )}
+          <Button onClick={handleSubmit} disabled={sending} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             إرسال
           </Button>

@@ -14,9 +14,15 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
   const handleSubmit = () => {
-    if (!name.trim() || !phone.trim() || !consent) return;
+    if (!name.trim() || !phone.trim()) return;
+    if (!consent) {
+      setConsentError(true);
+      return;
+    }
+    setConsentError(false);
     const sessionId = uuidv4();
     onSubmit({ name: name.trim(), phone: phone.trim(), sessionId });
   };
@@ -56,7 +62,7 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
         <Checkbox
           id="pdpl-consent"
           checked={consent}
-          onCheckedChange={(v) => setConsent(v === true)}
+          onCheckedChange={(v) => { setConsent(v === true); if (v === true) setConsentError(false); }}
           className="mt-1"
         />
         <label htmlFor="pdpl-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
@@ -67,9 +73,12 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
           ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
         </label>
       </div>
+      {consentError && (
+        <p className="text-destructive text-xs font-arabic text-center">يجب الموافقة على سياسة الخصوصية أولاً</p>
+      )}
       <Button
         onClick={handleSubmit}
-        disabled={!name.trim() || !phone.trim() || !consent}
+        disabled={!name.trim() || !phone.trim()}
         className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold"
       >
         بدء المحادثة

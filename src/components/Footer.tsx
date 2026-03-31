@@ -41,6 +41,7 @@ const Footer = () => {
               <li><a href="/careers" className="text-muted-foreground hover:text-primary transition-colors">بوابة التوظيف</a></li>
               <li><a href="/consultation" className="text-muted-foreground hover:text-primary transition-colors">الاستشارات الذكية</a></li>
               <li><a href="/career-gift" className="text-muted-foreground hover:text-primary transition-colors">هدية السيرة الذاتية</a></li>
+              <li><a href="/privacy-policy" className="text-muted-foreground hover:text-primary transition-colors">سياسة الخصوصية</a></li>
             </ul>
           </div>
 
