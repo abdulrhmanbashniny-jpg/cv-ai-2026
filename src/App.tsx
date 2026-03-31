@@ -11,6 +11,7 @@ import Careers from "./pages/Careers.tsx";
 import Consultation from "./pages/Consultation.tsx";
 import CareerGift from "./pages/CareerGift.tsx";
 import Admin from "./pages/Admin.tsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import MaintenancePage from "./components/MaintenancePage.tsx";
 import FloatingAIChat from "./components/FloatingAIChat.tsx";
 
@@ -22,7 +23,6 @@ const MaintenanceWrapper = ({ children }: { children: React.ReactNode }) => {
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    // Skip maintenance check for admin page
     if (location.pathname === "/admin") {
       setChecked(true);
       return;
@@ -42,6 +42,15 @@ const MaintenanceWrapper = ({ children }: { children: React.ReactNode }) => {
       setChecked(true);
     };
     check();
+  }, [location.pathname]);
+
+  // GA4 page view tracking on route change
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("config", "G-5JWJ48GGD4", {
+        page_path: location.pathname,
+      });
+    }
   }, [location.pathname]);
 
   if (!checked) return null;
@@ -64,8 +73,8 @@ const App = () => (
             <Route path="/careers" element={<Careers />} />
             <Route path="/consultation" element={<Consultation />} />
             <Route path="/career-gift" element={<CareerGift />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/admin" element={<Admin />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MaintenanceWrapper>

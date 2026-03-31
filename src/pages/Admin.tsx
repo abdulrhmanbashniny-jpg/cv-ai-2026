@@ -238,6 +238,9 @@ const Admin = () => {
               {activeTab === "content" && (
                 <AdminContent settings={settings} onSave={saveSettings} />
               )}
+              {activeTab === "caio" && (
+                <AdminCAIO chatLogs={chatLogs} consultations={consultations} jobApps={jobApps} companyReqs={companyReqs} contactMessages={contactMessages} />
+              )}
               {activeTab === "integrations" && (
                 <AdminIntegrations settings={settings} onSave={saveSettings} />
               )}
