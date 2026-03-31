@@ -33,6 +33,8 @@ const AdminIntegrations = ({ settings, onSave }: AdminIntegrationsProps) => {
   const [driveLogs, setDriveLogs] = useState<string[] | null>(null);
   const [testingScript, setTestingScript] = useState(false);
   const [scriptStatus, setScriptStatus] = useState<boolean | null>(null);
+  const [showBotToken, setShowBotToken] = useState(false);
+  const [showDriveJson, setShowDriveJson] = useState(false);
 
   const testTelegram = async () => {
     setTestingTelegram(true);
