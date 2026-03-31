@@ -98,7 +98,10 @@ const ContactModal = () => {
               ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
             </label>
           </div>
-          <Button onClick={handleSubmit} disabled={sending || !consent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
+          {consentError && (
+            <p className="text-destructive text-xs font-arabic text-center">يجب الموافقة على سياسة الخصوصية أولاً</p>
+          )}
+          <Button onClick={handleSubmit} disabled={sending} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             إرسال
           </Button>
