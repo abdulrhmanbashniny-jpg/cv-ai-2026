@@ -67,6 +67,19 @@ serve(async (req) => {
       });
     }
 
+    // Update portfolio content
+    if (action === "update_portfolio" && data) {
+      const { id: itemId, content_ar, content_en } = data;
+      const { error } = await supabase
+        .from("portfolio_content")
+        .update({ content_ar, content_en, updated_at: new Date().toISOString() })
+        .eq("id", itemId);
+      if (error) throw error;
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Test Telegram
     if (action === "test_telegram") {
       const { data: settings } = await supabase
