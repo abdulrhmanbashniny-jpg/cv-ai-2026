@@ -8,6 +8,7 @@ const Navbar = () => {
 
   const navLinks = [
     { label: t("الرئيسية", "Home"), href: "/" },
+    { label: t("النماذج الإدارية", "Templates"), href: "/templates" },
     { label: t("خدمات الشركات", "Corporate Services"), href: "/careers" },
     { label: t("المستشار العمالي", "Legal Advisor"), href: "/consultation" },
     { label: t("بناء سيرة ذاتية", "CV Builder"), href: "/career-gift" },
