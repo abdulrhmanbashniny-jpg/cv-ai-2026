@@ -11,16 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import AdminInbox from "@/components/admin/AdminInbox";
-import AdminAIManager from "@/components/admin/AdminAIManager";
 import AdminIntegrations from "@/components/admin/AdminIntegrations";
 import AdminContent from "@/components/admin/AdminContent";
-import AdminChatHistory from "@/components/admin/AdminChatHistory";
-import AdminAgentPrompts from "@/components/admin/AdminAgentPrompts";
 import AdminCAIO from "@/components/admin/AdminCAIO";
 import AdminResumeManager from "@/components/admin/AdminResumeManager";
 import AdminStoreManager from "@/components/admin/AdminStoreManager";
 import AdminMarketingHub from "@/components/admin/AdminMarketingHub";
 import AdminAdsManager from "@/components/admin/AdminAdsManager";
+import AdminAICommandCenter from "@/components/admin/AdminAICommandCenter";
+import AdminOrders from "@/components/admin/AdminOrders";
+import AdminNotifications from "@/components/admin/AdminNotifications";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(false);
@@ -28,7 +28,6 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(false);
 
-  // Data
   const [jobApps, setJobApps] = useState<any[]>([]);
   const [companyReqs, setCompanyReqs] = useState<any[]>([]);
   const [consultations, setConsultations] = useState<any[]>([]);
@@ -39,7 +38,6 @@ const Admin = () => {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [systemHealth, setSystemHealth] = useState<{ ai: boolean | null; telegram: boolean | null; database: boolean | null }>({ ai: null, telegram: null, database: null });
 
-  // Settings tab state
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
@@ -47,13 +45,11 @@ const Admin = () => {
   const [savingMaintenance, setSavingMaintenance] = useState(false);
 
   const login = async () => {
-    // Check DB for custom password first
     try {
       const { data } = await supabase.functions.invoke("admin-data", { body: { table: "admin_settings" } });
       const allSettings = data?.data || [];
       const dbPass = allSettings.find((s: any) => s.setting_key === "admin_password")?.setting_value;
       const correctPass = dbPass || "Bashniny@2024";
-      
       if (password === correctPass) {
         setAuthed(true);
         sessionStorage.setItem("admin_auth", "true");
@@ -70,20 +66,10 @@ const Admin = () => {
     }
   };
 
-  const logout = () => {
-    setAuthed(false);
-    sessionStorage.removeItem("admin_auth");
-  };
+  const logout = () => { setAuthed(false); sessionStorage.removeItem("admin_auth"); };
 
-  useEffect(() => {
-    if (sessionStorage.getItem("admin_auth") === "true") setAuthed(true);
-  }, []);
-
-  useEffect(() => {
-    if (authed) {
-      loadData();
-    }
-  }, [authed]);
+  useEffect(() => { if (sessionStorage.getItem("admin_auth") === "true") setAuthed(true); }, []);
+  useEffect(() => { if (authed) loadData(); }, [authed]);
 
   const loadData = async () => {
     setLoading(true);
@@ -105,9 +91,7 @@ const Admin = () => {
     setKbEntries(kb.data?.data || []);
 
     const s: Record<string, string> = {};
-    (settingsRes.data?.data || []).forEach((item: any) => {
-      s[item.setting_key] = item.setting_value || "";
-    });
+    (settingsRes.data?.data || []).forEach((item: any) => { s[item.setting_key] = item.setting_value || ""; });
     setSettings(s);
     setMaintenanceMode(s.maintenance_mode === "true");
 
@@ -119,27 +103,20 @@ const Admin = () => {
       chat_logs: (logs.data?.data || []).length,
     });
 
-    // System health
     setSystemHealth((prev) => ({ ...prev, database: true }));
-    
-    // Telegram: check if token and chatId exist in settings
     const hasTelegram = Boolean(s.telegram_bot_token && s.telegram_chat_id);
     setSystemHealth((prev) => ({ ...prev, telegram: hasTelegram }));
 
     try {
       const { data } = await supabase.functions.invoke("admin-data", { body: { action: "test_ai" } });
       setSystemHealth((prev) => ({ ...prev, ai: data?.ok || false }));
-    } catch {
-      setSystemHealth((prev) => ({ ...prev, ai: false }));
-    }
+    } catch { setSystemHealth((prev) => ({ ...prev, ai: false })); }
 
     setLoading(false);
   };
 
   const saveSettings = async (data: { setting_key: string; setting_value: string }[]) => {
-    await supabase.functions.invoke("admin-data", {
-      body: { action: "upsert_settings", data },
-    });
+    await supabase.functions.invoke("admin-data", { body: { action: "upsert_settings", data } });
     const updated = { ...settings };
     data.forEach((d) => { updated[d.setting_key] = d.setting_value; });
     setSettings(updated);
@@ -157,8 +134,7 @@ const Admin = () => {
     setSavingPassword(true);
     await saveSettings([{ setting_key: "admin_password", setting_value: newPassword }]);
     setSavingPassword(false);
-    setNewPassword("");
-    setConfirmPassword("");
+    setNewPassword(""); setConfirmPassword("");
     toast({ title: "تم", description: "تم تغيير كلمة المرور بنجاح" });
   };
 
@@ -179,17 +155,8 @@ const Admin = () => {
             <h2 className="text-xl font-bold font-arabic text-foreground">لوحة التحكم</h2>
             <p className="text-muted-foreground font-arabic text-sm">أدخل كلمة المرور للدخول</p>
           </div>
-          <Input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && login()}
-            placeholder="كلمة المرور"
-            className="mb-4 text-right font-arabic"
-          />
-          <Button onClick={login} className="w-full bg-gold-shimmer text-primary-foreground font-arabic">
-            دخول
-          </Button>
+          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && login()} placeholder="كلمة المرور" className="mb-4 text-right font-arabic" />
+          <Button onClick={login} className="w-full bg-gold-shimmer text-primary-foreground font-arabic">دخول</Button>
         </div>
       </div>
     );
@@ -198,14 +165,14 @@ const Admin = () => {
   const titles: Record<string, string> = {
     dashboard: "لوحة التحكم",
     inbox: "البريد الوارد",
-    chatHistory: "سجل المحادثات",
-    ai: "إدارة الذكاء الاصطناعي",
-    agentPrompts: "إعدادات الوكلاء",
+    aiCommand: "مركز قيادة الوكلاء",
     caio: "المحلل الذكي (CAIO)",
+    orders: "الطلبات",
     resume: "مدير السيرة الذاتية",
     store: "مدير المتجر",
     marketing: "العملاء المحتملون",
     ads: "مدير الإعلانات",
+    notifications: "مركز التنبيهات",
     content: "إدارة المحتوى",
     integrations: "التكاملات",
     settings: "الإعدادات",
@@ -219,100 +186,46 @@ const Admin = () => {
           <div className="flex-1 flex flex-col min-h-screen">
             <header className="h-14 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm">
               <div />
-              <h1 className="text-sm font-bold font-arabic text-foreground">
-                {titles[activeTab]}
-              </h1>
-              <SidebarTrigger className="mr-2">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
+              <h1 className="text-sm font-bold font-arabic text-foreground">{titles[activeTab]}</h1>
+              <SidebarTrigger className="mr-2"><Menu className="h-5 w-5" /></SidebarTrigger>
             </header>
-
             <main className="flex-1 p-4 md:p-6 overflow-auto">
-              {activeTab === "dashboard" && (
-                <AdminDashboard stats={stats} systemHealth={systemHealth} jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} />
-              )}
-              {activeTab === "inbox" && (
-                <AdminInbox jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} contactMessages={contactMessages} loading={loading} onRefresh={loadData} />
-              )}
-              {activeTab === "chatHistory" && (
-                <AdminChatHistory chatLogs={chatLogs} consultations={consultations} onRefresh={loadData} />
-              )}
-              {activeTab === "ai" && (
-                <AdminAIManager kbEntries={kbEntries} chatLogs={chatLogs} onRefresh={loadData} />
-              )}
-              {activeTab === "agentPrompts" && (
-                <AdminAgentPrompts settings={settings} onSave={saveSettings} />
-              )}
-              {activeTab === "content" && (
-                <AdminContent settings={settings} onSave={saveSettings} />
-              )}
-              {activeTab === "caio" && (
-                <AdminCAIO chatLogs={chatLogs} consultations={consultations} jobApps={jobApps} companyReqs={companyReqs} contactMessages={contactMessages} />
-              )}
-              {activeTab === "resume" && (
-                <AdminResumeManager />
-              )}
-              {activeTab === "store" && (
-                <AdminStoreManager />
-              )}
-              {activeTab === "marketing" && (
-                <AdminMarketingHub />
-              )}
-              {activeTab === "ads" && (
-                <AdminAdsManager settings={settings} onSave={saveSettings} />
-              )}
-              {activeTab === "integrations" && (
-                <AdminIntegrations settings={settings} onSave={saveSettings} />
-              )}
+              {activeTab === "dashboard" && <AdminDashboard stats={stats} systemHealth={systemHealth} jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} />}
+              {activeTab === "inbox" && <AdminInbox jobApps={jobApps} companyReqs={companyReqs} consultations={consultations} contactMessages={contactMessages} loading={loading} onRefresh={loadData} />}
+              {activeTab === "aiCommand" && <AdminAICommandCenter settings={settings} onSave={saveSettings} kbEntries={kbEntries} chatLogs={chatLogs} consultations={consultations} onRefresh={loadData} />}
+              {activeTab === "caio" && <AdminCAIO chatLogs={chatLogs} consultations={consultations} jobApps={jobApps} companyReqs={companyReqs} contactMessages={contactMessages} />}
+              {activeTab === "orders" && <AdminOrders />}
+              {activeTab === "content" && <AdminContent settings={settings} onSave={saveSettings} />}
+              {activeTab === "resume" && <AdminResumeManager />}
+              {activeTab === "store" && <AdminStoreManager />}
+              {activeTab === "marketing" && <AdminMarketingHub />}
+              {activeTab === "ads" && <AdminAdsManager settings={settings} onSave={saveSettings} />}
+              {activeTab === "notifications" && <AdminNotifications />}
+              {activeTab === "integrations" && <AdminIntegrations settings={settings} onSave={saveSettings} />}
               {activeTab === "settings" && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Change Password */}
                   <Card className="border-border/50">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-arabic flex items-center gap-2">
-                        <Lock className="h-4 w-4 text-primary" />
-                        تغيير كلمة المرور
-                      </CardTitle>
+                      <CardTitle className="text-sm font-arabic flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> تغيير كلمة المرور</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div>
-                        <label className="block font-arabic text-xs text-muted-foreground mb-1">كلمة المرور الجديدة</label>
-                        <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="text-right font-arabic" placeholder="••••••••" />
-                      </div>
-                      <div>
-                        <label className="block font-arabic text-xs text-muted-foreground mb-1">تأكيد كلمة المرور</label>
-                        <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="text-right font-arabic" placeholder="••••••••" />
-                      </div>
+                      <div><label className="block font-arabic text-xs text-muted-foreground mb-1">كلمة المرور الجديدة</label><Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="text-right font-arabic" placeholder="••••••••" /></div>
+                      <div><label className="block font-arabic text-xs text-muted-foreground mb-1">تأكيد كلمة المرور</label><Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="text-right font-arabic" placeholder="••••••••" /></div>
                       <Button onClick={changePassword} disabled={savingPassword} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
-                        {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        حفظ كلمة المرور
+                        {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} حفظ كلمة المرور
                       </Button>
                     </CardContent>
                   </Card>
-
-                  {/* Maintenance Mode */}
                   <Card className="border-border/50">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-arabic flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-400" />
-                        وضع الصيانة
-                      </CardTitle>
+                      <CardTitle className="text-sm font-arabic flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-400" /> وضع الصيانة</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <p className="text-xs text-muted-foreground font-arabic">
-                        عند تفعيل وضع الصيانة، سيظهر للزوار صفحة "قريباً / تحت التحديث" بدلاً من الموقع.
-                      </p>
+                      <p className="text-xs text-muted-foreground font-arabic">عند تفعيل وضع الصيانة، سيظهر للزوار صفحة "تحت التحديث".</p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Switch
-                            checked={maintenanceMode}
-                            onCheckedChange={toggleMaintenance}
-                            disabled={savingMaintenance}
-                            id="maintenance"
-                          />
-                          <Label htmlFor="maintenance" className="font-arabic text-sm cursor-pointer">
-                            {maintenanceMode ? "مفعّل" : "معطّل"}
-                          </Label>
+                          <Switch checked={maintenanceMode} onCheckedChange={toggleMaintenance} disabled={savingMaintenance} id="maintenance" />
+                          <Label htmlFor="maintenance" className="font-arabic text-sm cursor-pointer">{maintenanceMode ? "مفعّل" : "معطّل"}</Label>
                         </div>
                         <span className="font-arabic text-sm font-medium text-foreground">وضع الصيانة</span>
                       </div>
