@@ -88,13 +88,10 @@ serve(async (req) => {
     }
 
     // Increment template download count
-    await supabase.rpc("increment_download_count" as any, { tid: template_id }).catch(async () => {
-      // Fallback: manual increment
-      await supabase
-        .from("templates")
-        .update({ downloads_count: (template.downloads_count || 0) + 1 })
-        .eq("id", template_id);
-    });
+    await supabase
+      .from("templates")
+      .update({ downloads_count: (template.downloads_count || 0) + 1 })
+      .eq("id", template_id);
 
     // Hot Lead Radar: if > 3 downloads, send Telegram alert
     if (leadDownloadsCount > 3) {
