@@ -252,6 +252,15 @@ const Admin = () => {
               {activeTab === "resume" && (
                 <AdminResumeManager />
               )}
+              {activeTab === "store" && (
+                <AdminStoreManager />
+              )}
+              {activeTab === "marketing" && (
+                <AdminMarketingHub />
+              )}
+              {activeTab === "ads" && (
+                <AdminAdsManager settings={settings} onSave={saveSettings} />
+              )}
               {activeTab === "integrations" && (
                 <AdminIntegrations settings={settings} onSave={saveSettings} />
               )}
