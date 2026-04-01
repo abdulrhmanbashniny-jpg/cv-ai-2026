@@ -13,8 +13,11 @@ import Consultation from "./pages/Consultation.tsx";
 import CareerGift from "./pages/CareerGift.tsx";
 import Admin from "./pages/Admin.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import Templates from "./pages/Templates.tsx";
 import MaintenancePage from "./components/MaintenancePage.tsx";
 import FloatingAIChat from "./components/FloatingAIChat.tsx";
+import PromoBar from "./components/PromoBar.tsx";
+import WelcomePopup from "./components/WelcomePopup.tsx";
 
 const queryClient = new QueryClient();
 
