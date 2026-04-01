@@ -5,10 +5,13 @@ import ServicesSection from "@/components/ServicesSection";
 import SkillsSection from "@/components/SkillsSection";
 import AITwinCTA from "@/components/AITwinCTA";
 import Footer from "@/components/Footer";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Index = () => {
+  const { dir } = useLanguage();
+
   return (
-    <div dir="rtl" className="min-h-screen">
+    <div dir={dir} className="min-h-screen">
       <Navbar />
       <HeroSection />
       <ServicesSection />
