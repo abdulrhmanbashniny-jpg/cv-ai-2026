@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Globe } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { lang, setLang, t } = useLanguage();
 
   const navLinks = [
-    { label: "الرئيسية", href: "/" },
-    { label: "خدمات الشركات", href: "/careers" },
-    { label: "المستشار العمالي", href: "/consultation" },
-    { label: "بناء سيرة ذاتية", href: "/career-gift" },
+    { label: t("الرئيسية", "Home"), href: "/" },
+    { label: t("خدمات الشركات", "Corporate Services"), href: "/careers" },
+    { label: t("المستشار العمالي", "Legal Advisor"), href: "/consultation" },
+    { label: t("بناء سيرة ذاتية", "CV Builder"), href: "/career-gift" },
   ];
 
   return (
@@ -17,7 +19,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <a href="/" className="font-arabic font-bold text-lg text-foreground">
-            عبدالرحمن <span className="text-primary">باشنيني</span>
+            {t("عبدالرحمن", "Abdulrahman")} <span className="text-primary">{t("باشنيني", "Bashniny")}</span>
           </a>
 
           {/* Desktop Nav */}
@@ -31,15 +33,32 @@ const Navbar = () => {
                 {link.label}
               </a>
             ))}
+            {/* Language Toggle */}
+            <button
+              onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors border border-border/50 rounded-full px-3 py-1.5"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              <span className="font-medium">{lang === "ar" ? "EN" : "AR"}</span>
+            </button>
           </div>
 
           {/* Mobile Toggle */}
-          <button
-            className="md:hidden text-foreground"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="flex items-center gap-3 md:hidden">
+            <button
+              onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+              className="flex items-center gap-1 text-xs text-muted-foreground border border-border/50 rounded-full px-2.5 py-1"
+            >
+              <Globe className="h-3 w-3" />
+              {lang === "ar" ? "EN" : "AR"}
+            </button>
+            <button
+              className="text-foreground"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -49,7 +68,8 @@ const Navbar = () => {
               <a
                 key={link.href}
                 href={link.href}
-                className="block py-3 text-right font-arabic text-muted-foreground hover:text-primary transition-colors"
+                className="block py-3 font-arabic text-muted-foreground hover:text-primary transition-colors"
+                style={{ textAlign: lang === "ar" ? "right" : "left" }}
               >
                 {link.label}
               </a>

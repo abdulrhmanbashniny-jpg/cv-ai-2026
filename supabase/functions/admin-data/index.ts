@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VALID_TABLES = ["job_applications", "company_requests", "consultations", "chat_logs", "ai_knowledge_base", "admin_settings", "contact_requests"];
+const VALID_TABLES = ["job_applications", "company_requests", "consultations", "chat_logs", "ai_knowledge_base", "admin_settings", "contact_requests", "portfolio_content"];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -62,6 +62,19 @@ serve(async (req) => {
           .from("admin_settings")
           .upsert(item, { onConflict: "setting_key" });
       }
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Update portfolio content
+    if (action === "update_portfolio" && data) {
+      const { id: itemId, content_ar, content_en } = data;
+      const { error } = await supabase
+        .from("portfolio_content")
+        .update({ content_ar, content_en, updated_at: new Date().toISOString() })
+        .eq("id", itemId);
+      if (error) throw error;
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

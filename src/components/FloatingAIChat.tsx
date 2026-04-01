@@ -6,16 +6,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import ReactMarkdown from "react-markdown";
 import PreChatForm from "@/components/PreChatForm";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const DISCLAIMER: Msg = {
-  role: "assistant",
-  content:
-    "تنويه هام: هذا المساعد الذكي أداة استرشادية لتقديم معلومات عامة ولا يُغني عن الاستشارة المهنية أو القانونية المباشرة. استخدامك للدردشة يُعد موافقة صريحة وإخلاءً لمسؤولية المنصة. أهلاً بك! أنا المساعد الذكي للأستاذ عبدالرحمن بشنيني. اسألني عن خبراته المهنية، أو دعني أرشدك لخدماتنا المجانية (بناء السيرة الذاتية والاستشارات).",
-};
-
 const FloatingAIChat = () => {
+  const { t, lang } = useLanguage();
+
+  const DISCLAIMER: Msg = {
+    role: "assistant",
+    content: lang === "ar"
+      ? "تنويه هام: هذا المساعد الذكي أداة استرشادية لتقديم معلومات عامة ولا يُغني عن الاستشارة المهنية أو القانونية المباشرة. استخدامك للدردشة يُعد موافقة صريحة وإخلاءً لمسؤولية المنصة. أهلاً بك! أنا المساعد الذكي للأستاذ عبدالرحمن بشنيني. اسألني عن خبراته المهنية، أو دعني أرشدك لخدماتنا المجانية (بناء السيرة الذاتية والاستشارات)."
+      : "Important Notice: This AI assistant is a guidance tool providing general information and does not replace professional or legal consultation. By using this chat, you agree to the platform's disclaimer. Welcome! I'm Abdulrahman Bashniny's AI assistant. Ask me about his professional experience, or let me guide you to our free services (CV building and consultations).",
+  };
+
   const [open, setOpen] = useState(false);
   const [sessionData, setSessionData] = useState<{ name: string; phone: string; sessionId: string } | null>(null);
   const [messages, setMessages] = useState<Msg[]>([DISCLAIMER]);
@@ -25,6 +29,13 @@ const FloatingAIChat = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Update disclaimer when language changes
+  useEffect(() => {
+    if (!sessionData) {
+      setMessages([DISCLAIMER]);
+    }
+  }, [lang]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -33,15 +44,15 @@ const FloatingAIChat = () => {
     setSessionData(data);
     setMessages([
       DISCLAIMER,
-      { role: "assistant", content: `مرحباً ${data.name}! كيف يمكنني مساعدتك اليوم؟` },
+      { role: "assistant", content: lang === "ar" ? `مرحباً ${data.name}! كيف يمكنني مساعدتك اليوم؟` : `Hello ${data.name}! How can I help you today?` },
     ]);
   };
 
   const handleFileUpload = async (file: File) => {
     if (!sessionData) return;
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      setMessages((prev) => [...prev, { role: "assistant", content: "عذراً، حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: t("عذراً، حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت.", "Sorry, the file is too large. Maximum size is 10MB.") }]);
       return;
     }
 
@@ -54,35 +65,30 @@ const FloatingAIChat = () => {
 
       const { data: urlData } = supabase.storage.from("cv-uploads").getPublicUrl(path);
 
-      // For images, send as vision content
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = async () => {
           const base64 = reader.result as string;
-          const userMsg: Msg = { role: "user", content: `[مرفق: ${file.name}]` };
+          const userMsg: Msg = { role: "user", content: `[${t("مرفق", "Attachment")}: ${file.name}]` };
           const allMessages = [...messages, userMsg];
           setMessages(allMessages);
           setIsLoading(true);
 
           await streamChat(allMessages, sessionData.sessionId, [
-            {
-              type: "image_url",
-              image_url: { url: base64 },
-            },
-            { type: "text", text: `المستخدم أرفق صورة باسم "${file.name}". حلل محتواها وأجب عن أي أسئلة.` },
+            { type: "image_url", image_url: { url: base64 } },
+            { type: "text", text: `The user attached an image named "${file.name}". Analyze it and respond.` },
           ]);
         };
         reader.readAsDataURL(file);
       } else {
-        // For PDFs/docs, mention the upload
-        const userMsg: Msg = { role: "user", content: `أرفقت ملف: ${file.name}\nرابط الملف: ${urlData.publicUrl}\n\nالرجاء مراجعة الملف وتقديم ملاحظاتك.` };
+        const userMsg: Msg = { role: "user", content: `${t("أرفقت ملف", "Attached file")}: ${file.name}\n${t("رابط الملف", "File link")}: ${urlData.publicUrl}` };
         const allMessages = [...messages, userMsg];
         setMessages(allMessages);
         setIsLoading(true);
         await streamChat(allMessages, sessionData.sessionId);
       }
-    } catch (err) {
-      setMessages((prev) => [...prev, { role: "assistant", content: "عذراً، حدث خطأ أثناء رفع الملف." }]);
+    } catch {
+      setMessages((prev) => [...prev, { role: "assistant", content: t("عذراً، حدث خطأ أثناء رفع الملف.", "Sorry, an error occurred while uploading the file.") }]);
     } finally {
       setUploadingFile(false);
     }
@@ -90,17 +96,16 @@ const FloatingAIChat = () => {
 
   const streamChat = async (allMessages: Msg[], sessionId: string, multimodalContent?: any[]) => {
     let assistantSoFar = "";
+    const disclaimerContent = DISCLAIMER.content;
     try {
       const body: any = {
         messages: allMessages
-          .filter((m) => m !== DISCLAIMER)
+          .filter((m) => m.content !== disclaimerContent)
           .map((m) => ({ role: m.role, content: m.content })),
         agent: "career_twin",
         session_id: sessionId,
       };
-      if (multimodalContent) {
-        body.multimodal_content = multimodalContent;
-      }
+      if (multimodalContent) body.multimodal_content = multimodalContent;
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
@@ -116,7 +121,7 @@ const FloatingAIChat = () => {
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || "فشل الاتصال");
+        throw new Error(errData.error || "Connection failed");
       }
 
       const reader = resp.body!.getReader();
@@ -143,7 +148,7 @@ const FloatingAIChat = () => {
               assistantSoFar += content;
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
-                if (last?.role === "assistant" && last !== DISCLAIMER) {
+                if (last?.role === "assistant" && last.content !== disclaimerContent) {
                   return prev.map((m, i) =>
                     i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
                   );
@@ -151,15 +156,13 @@ const FloatingAIChat = () => {
                 return [...prev, { role: "assistant", content: assistantSoFar }];
               });
             }
-          } catch {
-            /* partial JSON */
-          }
+          } catch { /* partial JSON */ }
         }
       }
-    } catch (err: any) {
+    } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "عذراً، حدث خطأ. حاول مرة أخرى." },
+        { role: "assistant", content: t("عذراً، حدث خطأ. حاول مرة أخرى.", "Sorry, an error occurred. Please try again.") },
       ]);
     } finally {
       setIsLoading(false);
@@ -176,76 +179,52 @@ const FloatingAIChat = () => {
     await streamChat(allMessages, sessionData.sessionId);
   };
 
-  // Expose open method globally
   useEffect(() => {
     (window as any).__openFloatingChat = () => setOpen(true);
-    return () => {
-      delete (window as any).__openFloatingChat;
-    };
+    return () => { delete (window as any).__openFloatingChat; };
   }, []);
+
+  const ctaText = t("اسأل توأمي الرقمي عن خبراتي 💬", "Ask My AI Twin 💬");
 
   return (
     <>
-      {/* Floating Button */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-110 transition-transform flex items-center justify-center glow-gold"
-          aria-label="فتح المحادثة"
+          className="fixed bottom-6 left-6 z-50 flex items-center gap-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-105 transition-transform glow-gold px-5 py-3"
+          aria-label={ctaText}
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5" />
+          <span className="font-arabic text-sm font-semibold hidden sm:inline">{ctaText}</span>
         </button>
       )}
 
-      {/* Chat Window */}
       {open && (
         <div className="fixed bottom-6 left-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[540px] max-h-[calc(100vh-4rem)] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fade-in-up">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-primary text-primary-foreground rounded-t-2xl">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              <span className="font-arabic font-semibold text-sm">المساعد الذكي</span>
+              <span className="font-arabic font-semibold text-sm">{t("المساعد الذكي", "AI Assistant")}</span>
             </div>
             <button onClick={() => setOpen(false)} className="hover:opacity-80">
               <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Pre-Chat Form or Chat */}
           {!sessionData ? (
             <div className="flex-1 flex items-center justify-center p-6">
               <PreChatForm onSubmit={handlePreChat} />
             </div>
           ) : (
             <>
-              {/* Messages */}
-              <ScrollArea className="flex-1 p-4" dir="rtl">
+              <ScrollArea className="flex-1 p-4" dir={lang === "ar" ? "rtl" : "ltr"}>
                 <div className="space-y-3">
                   {messages.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-                    >
-                      <div
-                        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          msg.role === "assistant"
-                            ? "bg-primary/20 text-primary"
-                            : "bg-secondary text-foreground"
-                        }`}
-                      >
-                        {msg.role === "assistant" ? (
-                          <Bot className="h-3.5 w-3.5" />
-                        ) : (
-                          <User className="h-3.5 w-3.5" />
-                        )}
+                    <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === "assistant" ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"}`}>
+                        {msg.role === "assistant" ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
                       </div>
-                      <div
-                        className={`max-w-[80%] rounded-xl px-3 py-2 text-sm font-arabic leading-relaxed ${
-                          msg.role === "assistant"
-                            ? "bg-secondary text-foreground"
-                            : "bg-primary text-primary-foreground"
-                        }`}
-                      >
+                      <div className={`max-w-[80%] rounded-xl px-3 py-2 text-sm font-arabic leading-relaxed ${msg.role === "assistant" ? "bg-secondary text-foreground" : "bg-primary text-primary-foreground"}`}>
                         <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
                           <ReactMarkdown>{msg.content}</ReactMarkdown>
                         </div>
@@ -266,50 +245,14 @@ const FloatingAIChat = () => {
                 </div>
               </ScrollArea>
 
-              {/* Input */}
               <div className="p-3 border-t border-border">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    sendMessage();
-                  }}
-                  className="flex gap-2"
-                  dir="rtl"
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png,.webp"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
-                      e.target.value = "";
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isLoading || uploadingFile}
-                    className="text-muted-foreground hover:text-primary shrink-0"
-                  >
+                <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="flex gap-2" dir={lang === "ar" ? "rtl" : "ltr"}>
+                  <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); e.target.value = ""; }} />
+                  <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || uploadingFile} className="text-muted-foreground hover:text-primary shrink-0">
                     <Paperclip className="h-4 w-4" />
                   </Button>
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="اكتب رسالتك..."
-                    className="flex-1 text-sm font-arabic"
-                    disabled={isLoading}
-                  />
-                  <Button
-                    type="submit"
-                    size="icon"
-                    disabled={isLoading || !input.trim()}
-                    className="bg-primary text-primary-foreground"
-                  >
+                  <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder={t("اكتب رسالتك...", "Type your message...")} className="flex-1 text-sm font-arabic" disabled={isLoading} />
+                  <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className="bg-primary text-primary-foreground">
                     <Send className="h-4 w-4" />
                   </Button>
                 </form>

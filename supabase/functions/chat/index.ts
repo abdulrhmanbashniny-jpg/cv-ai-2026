@@ -119,7 +119,19 @@ serve(async (req) => {
     // Get the latest user message
     const userMessage = messages[messages.length - 1]?.content || "";
 
-    // Check knowledge base first
+    // Fetch dynamic portfolio content for AI context
+    const { data: portfolioData } = await supabase
+      .from("portfolio_content")
+      .select("content_key, content_ar, content_en, category")
+      .order("content_key");
+
+    let portfolioContext = "";
+    if (portfolioData && portfolioData.length > 0) {
+      const cvLines = portfolioData.map((p) => `${p.content_key}: ${p.content_ar || ""} | ${p.content_en || ""}`).join("\n");
+      portfolioContext = `\n\nبيانات السيرة الذاتية المحدّثة (استخدمها دائماً عند الإجابة عن خبرات ومؤهلات عبدالرحمن):\n${cvLines}`;
+    }
+
+    // Check knowledge base
     const { data: kbResults } = await supabase
       .from("ai_knowledge_base")
       .select("answer, question")
@@ -140,7 +152,7 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = systemPromptBase + knowledgeContext;
+    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext;
 
     // Build messages for the AI - handle multimodal content
     const aiMessages: any[] = [

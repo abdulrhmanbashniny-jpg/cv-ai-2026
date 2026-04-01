@@ -17,6 +17,7 @@ import AdminContent from "@/components/admin/AdminContent";
 import AdminChatHistory from "@/components/admin/AdminChatHistory";
 import AdminAgentPrompts from "@/components/admin/AdminAgentPrompts";
 import AdminCAIO from "@/components/admin/AdminCAIO";
+import AdminResumeManager from "@/components/admin/AdminResumeManager";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(false);
@@ -198,6 +199,7 @@ const Admin = () => {
     ai: "إدارة الذكاء الاصطناعي",
     agentPrompts: "إعدادات الوكلاء",
     caio: "المحلل الذكي (CAIO)",
+    resume: "مدير السيرة الذاتية",
     content: "إدارة المحتوى",
     integrations: "التكاملات",
     settings: "الإعدادات",
@@ -240,6 +242,9 @@ const Admin = () => {
               )}
               {activeTab === "caio" && (
                 <AdminCAIO chatLogs={chatLogs} consultations={consultations} jobApps={jobApps} companyReqs={companyReqs} contactMessages={contactMessages} />
+              )}
+              {activeTab === "resume" && (
+                <AdminResumeManager />
               )}
               {activeTab === "integrations" && (
                 <AdminIntegrations settings={settings} onSave={saveSettings} />
