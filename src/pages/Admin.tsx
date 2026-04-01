@@ -246,7 +246,6 @@ const Admin = () => {
               {activeTab === "resume" && (
                 <AdminResumeManager />
               )}
-              )}
               {activeTab === "integrations" && (
                 <AdminIntegrations settings={settings} onSave={saveSettings} />
               )}
