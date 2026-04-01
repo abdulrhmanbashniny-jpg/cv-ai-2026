@@ -19,6 +19,7 @@ const items = [
   { title: "إدارة الذكاء", value: "ai", icon: Brain },
   { title: "إعدادات الوكلاء", value: "agentPrompts", icon: Bot },
   { title: "المحلل الذكي (CAIO)", value: "caio", icon: TrendingUp },
+  { title: "مدير السيرة الذاتية", value: "resume", icon: FileUser },
   { title: "إدارة المحتوى", value: "content", icon: FileText },
   { title: "التكاملات", value: "integrations", icon: Puzzle },
   { title: "الإعدادات", value: "settings", icon: Cog },
