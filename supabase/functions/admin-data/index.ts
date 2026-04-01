@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VALID_TABLES = ["job_applications", "company_requests", "consultations", "chat_logs", "ai_knowledge_base", "admin_settings", "contact_requests", "portfolio_content"];
+const VALID_TABLES = ["job_applications", "company_requests", "consultations", "chat_logs", "ai_knowledge_base", "admin_settings", "contact_requests", "portfolio_content", "templates", "leads"];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

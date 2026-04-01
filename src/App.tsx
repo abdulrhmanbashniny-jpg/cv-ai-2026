@@ -13,8 +13,11 @@ import Consultation from "./pages/Consultation.tsx";
 import CareerGift from "./pages/CareerGift.tsx";
 import Admin from "./pages/Admin.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import Templates from "./pages/Templates.tsx";
 import MaintenancePage from "./components/MaintenancePage.tsx";
 import FloatingAIChat from "./components/FloatingAIChat.tsx";
+import PromoBar from "./components/PromoBar.tsx";
+import WelcomePopup from "./components/WelcomePopup.tsx";
 
 const queryClient = new QueryClient();
 
@@ -57,8 +60,10 @@ const MaintenanceWrapper = ({ children }: { children: React.ReactNode }) => {
   if (!checked) return null;
   if (maintenance && location.pathname !== "/admin") return <MaintenancePage />;
   return <>
+    {!location.pathname.startsWith("/admin") && <PromoBar />}
     {children}
     {!location.pathname.startsWith("/admin") && <FloatingAIChat />}
+    {!location.pathname.startsWith("/admin") && <WelcomePopup />}
   </>;
 };
 
@@ -76,6 +81,7 @@ const App = () => (
               <Route path="/consultation" element={<Consultation />} />
               <Route path="/career-gift" element={<CareerGift />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/templates" element={<Templates />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

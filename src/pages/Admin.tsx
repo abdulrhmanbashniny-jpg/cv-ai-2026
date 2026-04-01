@@ -18,6 +18,9 @@ import AdminChatHistory from "@/components/admin/AdminChatHistory";
 import AdminAgentPrompts from "@/components/admin/AdminAgentPrompts";
 import AdminCAIO from "@/components/admin/AdminCAIO";
 import AdminResumeManager from "@/components/admin/AdminResumeManager";
+import AdminStoreManager from "@/components/admin/AdminStoreManager";
+import AdminMarketingHub from "@/components/admin/AdminMarketingHub";
+import AdminAdsManager from "@/components/admin/AdminAdsManager";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(false);
@@ -200,6 +203,9 @@ const Admin = () => {
     agentPrompts: "إعدادات الوكلاء",
     caio: "المحلل الذكي (CAIO)",
     resume: "مدير السيرة الذاتية",
+    store: "مدير المتجر",
+    marketing: "العملاء المحتملون",
+    ads: "مدير الإعلانات",
     content: "إدارة المحتوى",
     integrations: "التكاملات",
     settings: "الإعدادات",
@@ -245,6 +251,15 @@ const Admin = () => {
               )}
               {activeTab === "resume" && (
                 <AdminResumeManager />
+              )}
+              {activeTab === "store" && (
+                <AdminStoreManager />
+              )}
+              {activeTab === "marketing" && (
+                <AdminMarketingHub />
+              )}
+              {activeTab === "ads" && (
+                <AdminAdsManager settings={settings} onSave={saveSettings} />
               )}
               {activeTab === "integrations" && (
                 <AdminIntegrations settings={settings} onSave={saveSettings} />

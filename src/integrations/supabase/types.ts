@@ -256,6 +256,42 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string
+          downloaded_templates: string[] | null
+          downloads_count: number
+          email: string
+          id: string
+          name: string
+          phone: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          downloaded_templates?: string[] | null
+          downloads_count?: number
+          email: string
+          id?: string
+          name: string
+          phone: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          downloaded_templates?: string[] | null
+          downloads_count?: number
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       portfolio_content: {
         Row: {
           category: string
@@ -282,6 +318,45 @@ export type Database = {
           content_key?: string
           created_at?: string
           id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          downloads_count: number
+          gdrive_link: string | null
+          id: string
+          is_active: boolean
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          downloads_count?: number
+          gdrive_link?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          downloads_count?: number
+          gdrive_link?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          type?: string
           updated_at?: string
         }
         Relationships: []
