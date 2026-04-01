@@ -199,6 +199,7 @@ const Admin = () => {
     ai: "إدارة الذكاء الاصطناعي",
     agentPrompts: "إعدادات الوكلاء",
     caio: "المحلل الذكي (CAIO)",
+    resume: "مدير السيرة الذاتية",
     content: "إدارة المحتوى",
     integrations: "التكاملات",
     settings: "الإعدادات",
