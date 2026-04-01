@@ -60,8 +60,10 @@ const MaintenanceWrapper = ({ children }: { children: React.ReactNode }) => {
   if (!checked) return null;
   if (maintenance && location.pathname !== "/admin") return <MaintenancePage />;
   return <>
+    {!location.pathname.startsWith("/admin") && <PromoBar />}
     {children}
     {!location.pathname.startsWith("/admin") && <FloatingAIChat />}
+    {!location.pathname.startsWith("/admin") && <WelcomePopup />}
   </>;
 };
 
