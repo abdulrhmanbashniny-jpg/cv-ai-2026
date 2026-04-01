@@ -17,6 +17,7 @@ import AdminContent from "@/components/admin/AdminContent";
 import AdminChatHistory from "@/components/admin/AdminChatHistory";
 import AdminAgentPrompts from "@/components/admin/AdminAgentPrompts";
 import AdminCAIO from "@/components/admin/AdminCAIO";
+import AdminResumeManager from "@/components/admin/AdminResumeManager";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(false);
