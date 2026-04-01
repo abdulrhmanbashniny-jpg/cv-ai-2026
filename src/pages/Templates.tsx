@@ -120,10 +120,11 @@ const Templates = () => {
     if (result.type === "free" && result.download_url) {
       setThankYouData({ title: result.template_title, url: result.download_url });
       setThankYouOpen(true);
-      // Refresh to update counts
       loadTemplates();
-    } else if (result.type === "premium" && result.whatsapp_url) {
-      window.open(result.whatsapp_url, "_blank");
+    } else if (result.type === "premium") {
+      // Show success message instead of WhatsApp redirect
+      setThankYouData({ title: result.template_title });
+      setThankYouOpen(true);
       loadTemplates();
     }
   };
