@@ -1,4 +1,4 @@
-import { LayoutDashboard, Inbox, Brain, Puzzle, FileText, LogOut, MessageCircle, Bot, Cog, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Inbox, Brain, Puzzle, FileText, LogOut, MessageCircle, Bot, Cog, TrendingUp, FileUser } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
