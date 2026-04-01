@@ -71,8 +71,16 @@
 
   [dir="rtl"] body,
   body {
-    direction: rtl;
     font-family: var(--font-arabic);
+  }
+
+  [dir="ltr"] body {
+    direction: ltr;
+    font-family: var(--font-body);
+  }
+
+  [dir="rtl"] body {
+    direction: rtl;
   }
 
   h1, h2, h3, h4, h5, h6 {
