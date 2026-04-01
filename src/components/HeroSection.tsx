@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, FileText, Briefcase, Award, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const HeroSection = () => {
-  const [heroName, setHeroName] = useState("عبدالرحمن باشنيني");
-  const [heroBio, setHeroBio] = useState("مدير تطوير الأعمال | مدير أول الموارد البشرية والشؤون القانونية");
+  const { t, lang } = useLanguage();
   const [heroImageUrl, setHeroImageUrl] = useState("");
 
   useEffect(() => {
@@ -15,17 +15,14 @@ const HeroSection = () => {
         const { data } = await supabase.functions.invoke("admin-data", { body: { table: "admin_settings" } });
         const settings = data?.data || [];
         const get = (key: string) => settings.find((s: any) => s.setting_key === key)?.setting_value;
-        if (get("hero_name")) setHeroName(get("hero_name"));
-        if (get("hero_bio")) setHeroBio(get("hero_bio"));
         if (get("hero_image_url")) setHeroImageUrl(get("hero_image_url"));
       } catch { /* use defaults */ }
     };
     fetchSettings();
   }, []);
 
-  const nameParts = heroName.split(" ");
-  const firstName = nameParts[0] || "";
-  const lastName = nameParts.slice(1).join(" ") || "";
+  const firstName = t("عبدالرحمن", "Abdulrahman");
+  const lastName = t("باشنيني", "Bashniny");
   const portraitSrc = heroImageUrl || heroPortrait;
 
   return (
@@ -37,10 +34,10 @@ const HeroSection = () => {
 
       <div className="container mx-auto px-6 py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="text-right order-2 lg:order-1 animate-fade-in-up">
+          <div className={`order-2 lg:order-1 animate-fade-in-up ${lang === "ar" ? "text-right" : "text-left"}`}>
             <div className="inline-block mb-6 px-4 py-2 rounded-full border border-primary/30 bg-primary/5">
               <span className="text-primary font-arabic text-sm">
-                +15 عامًا من الخبرة في الموارد البشرية والشؤون القانونية
+                {t("+15 عامًا من الخبرة في الموارد البشرية والشؤون القانونية", "+15 Years of HR & Legal Affairs Experience")}
               </span>
             </div>
             
@@ -51,39 +48,39 @@ const HeroSection = () => {
             </h1>
             
             <p className="text-xl md:text-2xl text-muted-foreground font-arabic mb-3">
-              {heroBio}
+              {t("مدير تطوير الأعمال | مدير أول الموارد البشرية والشؤون القانونية", "Business Development Manager | Senior HR & Legal Affairs Director")}
             </p>
 
-            <div className="flex flex-wrap gap-3 mb-6 justify-end">
+            <div className={`flex flex-wrap gap-3 mb-6 ${lang === "ar" ? "justify-end" : "justify-start"}`}>
               <span className="inline-flex items-center gap-1.5 text-xs font-arabic text-muted-foreground bg-card/60 px-3 py-1.5 rounded-full border border-border/50">
                 <Award className="h-3.5 w-3.5 text-primary" />
-                خبير نظام العمل السعودي
+                {t("خبير نظام العمل السعودي", "Saudi Labor Law Expert")}
               </span>
               <span className="inline-flex items-center gap-1.5 text-xs font-arabic text-muted-foreground bg-card/60 px-3 py-1.5 rounded-full border border-border/50">
                 <MapPin className="h-3.5 w-3.5 text-primary" />
-                جدة، المملكة العربية السعودية
+                {t("جدة، المملكة العربية السعودية", "Jeddah, Saudi Arabia")}
               </span>
               <span className="inline-flex items-center gap-1.5 text-xs font-arabic text-muted-foreground bg-card/60 px-3 py-1.5 rounded-full border border-border/50">
                 <Briefcase className="h-3.5 w-3.5 text-primary" />
-                راديسون بلو • الأغذية العربية • نجوم الحفل • دهانات جدة
+                {t("راديسون بلو • الأغذية العربية • نجوم الحفل • دهانات جدة", "Radisson Blu • Arab Catering • Nojoom Al-Hafl • Jeddah Paints")}
               </span>
             </div>
             
-            <p className="text-muted-foreground font-arabic leading-relaxed mb-8 max-w-lg mr-auto text-right">
-              متخصص في بناء بيئات عمل احترافية، وتطوير السياسات التنظيمية، 
-              وتقديم الاستشارات في نظام العمل السعودي والأنظمة ذات العلاقة.
-              بكالوريوس إدارة موارد بشرية من جامعة الملك عبدالعزيز، 
-              ورخصة استشارات عمالية معتمدة.
+            <p className={`text-muted-foreground font-arabic leading-relaxed mb-8 max-w-lg ${lang === "ar" ? "mr-auto text-right" : "ml-auto text-left"}`}>
+              {t(
+                "متخصص في بناء بيئات عمل احترافية، وتطوير السياسات التنظيمية، وتقديم الاستشارات في نظام العمل السعودي والأنظمة ذات العلاقة. بكالوريوس إدارة موارد بشرية من جامعة الملك عبدالعزيز، ورخصة استشارات عمالية معتمدة.",
+                "Specialized in building professional work environments, developing organizational policies, and providing consultations on Saudi Labor Law. Bachelor's in HR Management from King Abdulaziz University, with a certified labor consultancy license."
+              )}
             </p>
 
-            <div className="flex flex-wrap gap-4 justify-end">
+            <div className={`flex flex-wrap gap-4 ${lang === "ar" ? "justify-end" : "justify-start"}`}>
               <Button 
                 size="lg" 
                 onClick={() => (window as any).__openFloatingChat?.()}
                 className="bg-gold-shimmer text-primary-foreground font-arabic text-lg px-8 py-6 rounded-lg glow-gold hover:opacity-90 transition-opacity"
               >
-                <MessageCircle className="ml-2 h-5 w-5" />
-                استشر توأمي الرقمي
+                <MessageCircle className={`h-5 w-5 ${lang === "ar" ? "ml-2" : "mr-2"}`} />
+                {t("استشر توأمي الرقمي", "Ask My AI Twin")}
               </Button>
               <a href="/consultation">
                 <Button 
@@ -91,8 +88,8 @@ const HeroSection = () => {
                   size="lg"
                   className="border-primary/40 text-primary font-arabic text-lg px-8 py-6 rounded-lg hover:bg-primary/10 transition-colors"
                 >
-                  <FileText className="ml-2 h-5 w-5" />
-                  طلب استشارة رسمية
+                  <FileText className={`h-5 w-5 ${lang === "ar" ? "ml-2" : "mr-2"}`} />
+                  {t("طلب استشارة رسمية", "Request Consultation")}
                 </Button>
               </a>
             </div>
@@ -104,7 +101,7 @@ const HeroSection = () => {
               <div className="relative w-80 h-96 md:w-96 md:h-[28rem] rounded-2xl overflow-hidden border-2 border-primary/20">
                 <img
                   src={portraitSrc}
-                  alt={heroName}
+                  alt={`${firstName} ${lastName}`}
                   className="w-full h-full object-cover object-top"
                   width={800}
                   height={1024}
@@ -113,7 +110,9 @@ const HeroSection = () => {
               <div className="absolute -bottom-4 -right-4 bg-card border border-primary/30 rounded-xl px-5 py-3 shadow-lg">
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-5 w-5 text-primary" />
-                  <span className="font-arabic text-sm text-foreground font-semibold">مدير تطوير الأعمال</span>
+                  <span className="font-arabic text-sm text-foreground font-semibold">
+                    {t("مدير تطوير الأعمال", "Business Development Manager")}
+                  </span>
                 </div>
               </div>
             </div>
