@@ -256,6 +256,36 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_content: {
+        Row: {
+          category: string
+          content_ar: string | null
+          content_en: string | null
+          content_key: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content_ar?: string | null
+          content_en?: string | null
+          content_key: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content_ar?: string | null
+          content_en?: string | null
+          content_key?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
