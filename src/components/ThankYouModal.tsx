@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Crown, ExternalLink, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import QualityScoutChat from "@/components/QualityScoutChat";
+
+interface ThankYouModalProps {
   open: boolean;
   onClose: () => void;
   templateTitle: string;
