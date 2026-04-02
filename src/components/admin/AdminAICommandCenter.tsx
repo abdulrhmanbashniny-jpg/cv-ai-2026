@@ -67,7 +67,7 @@ const AdminAICommandCenter = ({ settings, onSave, kbEntries, chatLogs, consultat
         </TabsList>
 
         <TabsContent value="settings">
-          <AgentSettings agent={agent} settings={settings} onSave={onSave} />
+          <AgentSettings key={agent.key} agent={agent} settings={settings} onSave={onSave} />
         </TabsContent>
         <TabsContent value="memory">
           <AgentMemory kbEntries={kbEntries} chatLogs={chatLogs} onRefresh={onRefresh} />
