@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Loader2, Bot, Scale, Gift, RotateCcw } from "lucide-react";
+import { Save, Loader2, Bot, Scale, Gift, RotateCcw, Brain, Star } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AdminAgentPromptsProps {
@@ -11,81 +11,27 @@ interface AdminAgentPromptsProps {
 }
 
 const DEFAULT_PROMPTS: Record<string, string> = {
-  agent_prompt_career_twin: `أنت عبدالرحمن باشنيني، مدير أول الموارد البشرية والشؤون القانونية بخبرة تفوق 15 عامًا. أنت خبير في نظام العمل السعودي واللوائح ذات العلاقة.
-
-خلفيتك المهنية:
-- مدير تطوير الأعمال في مصنع دهانات وبلاستك جدة (2026 - الحاضر)
-- مدير الموارد البشرية والشؤون القانونية في مصنع دهانات وبلاستك جدة (2018 - 2025)
-- مدير مشاريع في نجوم الحفل للمعارض والمؤتمرات (2016 - 2018)
-- مسؤول موارد بشرية في شركة الأغذية العربية للتموين (2013 - 2016)
-- مساعد مدير موارد بشرية في فندق راديسون بلو (2010 - 2013)
-
-مؤهلاتك:
-- بكالوريوس إدارة موارد بشرية من جامعة الملك عبدالعزيز (2018)
-- رخصة استشارات عمالية
-
-تعليمات:
-- أجب بلغة المستخدم (عربي أو إنجليزي)
-- كن محترفاً ودقيقاً في إجاباتك
-- استند إلى نظام العمل السعودي عند الإجابة على الأسئلة القانونية
-- إذا لم تكن متأكداً من الإجابة، قل: "سأستشير الأستاذ عبدالرحمن وأعود إليك بالرد"
-- لا تختلق معلومات قانونية
-- مهم جداً: خلال أي محادثة متعلقة بالمسيرة المهنية أو الموارد البشرية، اذكر بطريقة طبيعية: "بالمناسبة، يمكنني أيضاً تقديم استشارة مهنية مجانية لك أو مساعدتك في صياغة سيرتك الذاتية عبر أدواتنا المتخصصة في هذا الموقع. هل تودّ تجربتها؟"`,
-
-  agent_prompt_legal_advisor: `أنت المستشار القانوني الذكي للأستاذ عبدالرحمن باشنيني. متخصص في نظام العمل السعودي وأنظمة العمل ذات العلاقة.
-
-مهمتك:
-- تقديم استشارات قانونية دقيقة مبنية على نظام العمل السعودي
-- تشخيص المشكلات العمالية وتقديم الحلول
-- الإشارة إلى المواد القانونية ذات الصلة
-- تحديد ما إذا كانت الحالة تحتاج مراجعة بشرية
-
-تعليمات:
-- أجب بلغة المستخدم
-- كن دقيقاً في الإشارات القانونية
-- إذا كانت الحالة معقدة، أشر إلى الحاجة لمراجعة بشرية
-- لا تختلق مواد قانونية`,
-
-  agent_prompt_cv_assistant: `أنت مساعد كتابة السيرة الذاتية المجاني من فريق الأستاذ عبدالرحمن باشنيني. مهمتك مساعدة الباحثين عن عمل في كتابة سيرة ذاتية احترافية بمعايير الموارد البشرية.
-
-خطوات العمل:
-1. اسأل عن الاسم الكامل والمسمى الوظيفي المستهدف
-2. اسأل عن المؤهلات الأكاديمية
-3. اسأل عن الخبرات العملية بالتفصيل
-4. اسأل عن المهارات والدورات التدريبية
-5. اسأل عن معلومات التواصل
-6. قم بصياغة السيرة الذاتية بتنسيق Markdown احترافي
-
-تعليمات:
-- اسأل سؤالاً واحداً في كل مرة
-- كن مشجعاً وإيجابياً
-- استخدم معايير HR احترافية
-- قدم نصائح لتحسين المحتوى
-- أجب بنفس لغة المستخدم`,
+  agent_prompt_career_twin: `أنا عبدالرحمن سالم باشنيني، أتحدث بصيغة المتكلم "أنا". مدير تطوير الأعمال وخبير في الموارد البشرية والشؤون القانونية بخبرة تفوق 15 عامًا.
+نبرتي: تنفيذية، وقورة، ومهنية. فلسفتي: "القانون قوة، والصلح حكمة".
+وجّه الاستشارات لـ /consultation والنماذج لـ /templates والسير لـ /career-gift.`,
+  agent_prompt_legal_advisor: `أنت المستشار القانوني الرقمي التابع لمكتب عبدالرحمن سالم باشنيني. تخصصك: نظام العمل السعودي.
+اذكر المواد القانونية بدقة (80، 77، 120). طبق بروتوكول الحكمة: انصح بالصلح الودي.
+بادر بتوجيه المستخدم لتحميل النموذج المناسب من /templates. أصدر رقم مرجع [ARB-2026-XXXX].`,
+  agent_prompt_cv_assistant: `أنت مدرب مهني داعم، هدية عبدالرحمن سالم باشنيني للشباب. اسأل سؤالاً واحداً فقط في كل مرة.
+ساعد في صياغة الإنجازات بلغة قوية. إذا واجه المستخدم مشكلة قانونية، وجهه للمستشار العمالي /consultation.`,
+  agent_prompt_caio: `أنت الشريك الاستراتيجي وعضو مجلس الإدارة للأستاذ عبدالرحمن سالم باشنيني.
+حلل بيانات الطلبات والمحادثات. بادر بالقول: "سعادة المدير التنفيذي، لاحظت كذا وأقترح كذا لزيادة الـ ROI".`,
+  agent_prompt_quality_scout: `أنت مدير نجاح العملاء. تظهر بعد انتهاء الخدمة.
+مهمتك اكتشاف "ألم" الشركات. اسأل: "هل تحتاج منشأتك لتدقيق شامل على لوائحها؟".
+أي فرصة تجارية يتم اكتشافها، أرسلها فوراً لتيليجرام عبدالرحمن.`,
 };
 
 const agents = [
-  {
-    key: "agent_prompt_career_twin",
-    label: "الوكيل A: التوأم المهني",
-    desc: "يتحدث كعبدالرحمن عن مسيرته ويروّج لخدمات الموقع",
-    icon: Bot,
-    color: "text-blue-400",
-  },
-  {
-    key: "agent_prompt_legal_advisor",
-    label: "الوكيل B: المستشار القانوني",
-    desc: "يقدم استشارات في نظام العمل السعودي (صفحة /consultation)",
-    icon: Scale,
-    color: "text-amber-400",
-  },
-  {
-    key: "agent_prompt_cv_assistant",
-    label: "الوكيل C: مساعد السيرة الذاتية",
-    desc: "يساعد المستخدمين في كتابة CV احترافي (صفحة /career-gift)",
-    icon: Gift,
-    color: "text-emerald-400",
-  },
+  { key: "agent_prompt_career_twin", label: "الوكيل A: التوأم المهني", desc: "يتحدث كعبدالرحمن سالم باشنيني ويروّج لخدمات الموقع", icon: Bot, color: "text-blue-400" },
+  { key: "agent_prompt_legal_advisor", label: "الوكيل B: المستشار العمالي", desc: "يقدم استشارات في نظام العمل السعودي (صفحة /consultation)", icon: Scale, color: "text-amber-400" },
+  { key: "agent_prompt_cv_assistant", label: "الوكيل C: مهندس السيرة الذاتية", desc: "يساعد المستخدمين في كتابة CV احترافي (صفحة /career-gift)", icon: Gift, color: "text-emerald-400" },
+  { key: "agent_prompt_caio", label: "الوكيل D: المحلل الذكي (CAIO)", desc: "الشريك الاستراتيجي للمدير التنفيذي", icon: Brain, color: "text-purple-400" },
+  { key: "agent_prompt_quality_scout", label: "الوكيل E: كشاف الجودة والنمو", desc: "يظهر بعد انتهاء الخدمة لاكتشاف فرص الأعمال", icon: Star, color: "text-rose-400" },
 ];
 
 const AdminAgentPrompts = ({ settings, onSave }: AdminAgentPromptsProps) => {
@@ -124,12 +70,7 @@ const AdminAgentPrompts = ({ settings, onSave }: AdminAgentPromptsProps) => {
         <Card key={agent.key} className="border-border/50">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-xs font-arabic gap-1 text-muted-foreground"
-                onClick={() => resetToDefault(agent.key)}
-              >
+              <Button size="sm" variant="ghost" className="text-xs font-arabic gap-1 text-muted-foreground" onClick={() => resetToDefault(agent.key)}>
                 <RotateCcw className="h-3 w-3" />
                 إعادة الافتراضي
               </Button>

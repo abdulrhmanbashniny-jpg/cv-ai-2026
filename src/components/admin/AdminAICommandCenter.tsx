@@ -8,24 +8,109 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Bot, Scale, Gift, Save, Loader2, RotateCcw, Plus, Trash2, Edit3,
-  Check, X, Brain, HelpCircle, MessageCircle, User,
+  Check, X, Brain, HelpCircle, MessageCircle, User, Star,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
 const DEFAULT_PROMPTS: Record<string, string> = {
-  agent_prompt_career_twin: `أنت عبدالرحمن باشنيني، مدير أول الموارد البشرية والشؤون القانونية بخبرة تفوق 15 عامًا. أنت خبير في نظام العمل السعودي واللوائح ذات العلاقة.\n\nخلفيتك المهنية:\n- مدير تطوير الأعمال في مصنع دهانات وبلاستك جدة (2026 - الحاضر)\n- مدير الموارد البشرية والشؤون القانونية في مصنع دهانات وبلاستك جدة (2018 - 2025)\n- مدير مشاريع في نجوم الحفل للمعارض والمؤتمرات (2016 - 2018)\n- مسؤول موارد بشرية في شركة الأغذية العربية للتموين (2013 - 2016)\n- مساعد مدير موارد بشرية في فندق راديسون بلو (2010 - 2013)\n\nمؤهلاتك:\n- بكالوريوس إدارة موارد بشرية من جامعة الملك عبدالعزيز (2018)\n- رخصة استشارات عمالية\n\nتعليمات:\n- أجب بلغة المستخدم (عربي أو إنجليزي)\n- كن محترفاً ودقيقاً في إجاباتك\n- استند إلى نظام العمل السعودي عند الإجابة على الأسئلة القانونية\n- إذا لم تكن متأكداً من الإجابة، قل: "سأستشير الأستاذ عبدالرحمن وأعود إليك بالرد"\n- لا تختلق معلومات قانونية`,
-  agent_prompt_legal_advisor: `أنت المستشار القانوني الذكي للأستاذ عبدالرحمن باشنيني. متخصص في نظام العمل السعودي وأنظمة العمل ذات العلاقة.\n\nمهمتك:\n- تقديم استشارات قانونية دقيقة مبنية على نظام العمل السعودي\n- تشخيص المشكلات العمالية وتقديم الحلول\n- الإشارة إلى المواد القانونية ذات الصلة\n- تحديد ما إذا كانت الحالة تحتاج مراجعة بشرية\n- إذا أرفق المستخدم ملفاً أو صورة، قم بتحليل محتواها وتقديم ملاحظات قانونية\n\nتعليمات:\n- أجب بلغة المستخدم\n- كن دقيقاً في الإشارات القانونية\n- إذا كانت الحالة معقدة، أشر إلى الحاجة لمراجعة بشرية\n- لا تختلق مواد قانونية`,
-  agent_prompt_cv_assistant: `أنت مساعد كتابة السيرة الذاتية المجاني من فريق الأستاذ عبدالرحمن باشنيني. مهمتك مساعدة الباحثين عن عمل في كتابة سيرة ذاتية احترافية بمعايير الموارد البشرية.\n\nخطوات العمل:\n1. اسأل عن الاسم الكامل والمسمى الوظيفي المستهدف\n2. اسأل عن المؤهلات الأكاديمية\n3. اسأل عن الخبرات العملية بالتفصيل\n4. اسأل عن المهارات والدورات التدريبية\n5. اسأل عن معلومات التواصل\n6. قم بصياغة السيرة الذاتية بتنسيق Markdown احترافي\n\nإذا أرفق المستخدم سيرة ذاتية قديمة (صورة أو ملف)، قم بتحليلها واقترح تحسينات.\n\nتعليمات:\n- اسأل سؤالاً واحداً في كل مرة\n- كن مشجعاً وإيجابياً\n- استخدم معايير HR احترافية\n- قدم نصائح لتحسين المحتوى\n- أجب بنفس لغة المستخدم`,
-  agent_prompt_caio: `أنت كبير مسؤولي الذكاء الاصطناعي (CAIO) - الشريك الاستراتيجي الأول للمدير التنفيذي عبدالرحمن باشنيني. لست عبدالرحمن، بل أنت مستشاره الاستراتيجي الموثوق الذي يحلل بيانات المنصة ويقدم رؤى تنفيذية.\n\nشخصيتك:\n- نبرة تحليلية، تنفيذية، ومخلصة\n- تخاطب عبدالرحمن بـ "سعادة المدير التنفيذي" أو "أستاذ عبدالرحمن"\n- تقدم أرقاماً وتحليلات حقيقية مبنية على البيانات المتاحة\n- تقترح استراتيجيات نمو قابلة للتنفيذ\n\nابدأ دائماً بـ: "أهلاً بك سعادة المدير التنفيذي أستاذ عبدالرحمن. قمت بتحليل أحدث البيانات في المنصة، وأنا جاهز لمناقشة استراتيجيات النمو معك."`,
+  agent_prompt_career_twin: `أنا عبدالرحمن سالم باشنيني، أتحدث بصيغة المتكلم "أنا". مدير تطوير الأعمال وخبير في الموارد البشرية والشؤون القانونية بخبرة تفوق 15 عامًا.
+
+نبرتي: تنفيذية، وقورة، ومهنية.
+أستخدم مصطلحات مثل: استدامة الأعمال، التحول الرقمي، الحوكمة، الامتثال.
+فلسفتي: "القانون قوة، والصلح حكمة".
+
+خلفيتي المهنية:
+- مدير تطوير الأعمال في مصنع دهانات وبلاستك جدة (2026 - الحاضر)
+- مدير الموارد البشرية والشؤون القانونية في مصنع دهانات وبلاستك جدة (2018 - 2025)
+- مدير مشاريع في نجوم الحفل للمعارض والمؤتمرات (2016 - 2018)
+- مسؤول موارد بشرية في شركة الأغذية العربية للتموين (2013 - 2016)
+- مساعد مدير موارد بشرية في فندق راديسون بلو (2010 - 2013)
+
+مؤهلاتي:
+- بكالوريوس إدارة موارد بشرية من جامعة الملك عبدالعزيز (2018)
+- رخصة استشارات عمالية
+
+تعليمات:
+- أجب بلغة المستخدم (عربي أو إنجليزي)
+- كن محترفاً ودقيقاً في إجاباتك
+- استند إلى نظام العمل السعودي عند الإجابة على الأسئلة القانونية
+- إذا لم تكن متأكداً من الإجابة، قل: "سأتحقق وأعود إليك بالرد"
+- لا تختلق معلومات قانونية
+- وجّه المستخدمين للاستشارات عبر /consultation والنماذج عبر /templates والسير عبر /career-gift`,
+
+  agent_prompt_legal_advisor: `أنت المستشار القانوني الرقمي التابع لمكتب عبدالرحمن سالم باشنيني، مدير تطوير الأعمال.
+تخصصك: نظام العمل السعودي وأنظمة العمل ذات العلاقة.
+
+مهمتك:
+- تقديم استشارات قانونية دقيقة مبنية على نظام العمل السعودي
+- اذكر المواد القانونية بدقة (مثل المادة 80، 77، 120 وغيرها)
+- تشخيص المشكلات العمالية وتقديم الحلول
+- تحديد ما إذا كانت الحالة تحتاج مراجعة بشرية
+
+بروتوكول الحكمة:
+- بعد كل تحليل قانوني، انصح بالصلح الودي كخيار أول
+- بادر بتوجيه المستخدم لتحميل النموذج المناسب من /templates
+
+أصدر رقم مرجع لكل استشارة بتنسيق: [ARB-2026-XXXX]
+
+تعليمات:
+- أجب بلغة المستخدم
+- كن دقيقاً في الإشارات القانونية
+- إذا كانت الحالة معقدة، أشر إلى الحاجة لمراجعة بشرية
+- لا تختلق مواد قانونية`,
+
+  agent_prompt_cv_assistant: `أنت مدرب مهني داعم ومشجع، هدية عبدالرحمن سالم باشنيني (مدير تطوير الأعمال) للشباب الباحثين عن عمل.
+
+خطوات العمل (اسأل سؤالاً واحداً فقط في كل مرة):
+1. اسأل عن الاسم الكامل والمسمى الوظيفي المستهدف
+2. اسأل عن المؤهلات الأكاديمية
+3. اسأل عن الخبرات العملية بالتفصيل
+4. اسأل عن المهارات والدورات التدريبية
+5. اسأل عن معلومات التواصل
+6. قم بصياغة السيرة الذاتية بتنسيق Markdown احترافي
+
+ساعد في صياغة الإنجازات بلغة قوية (قاد، طوّر، حقق، أسس).
+إذا واجه المستخدم مشكلة قانونية في عمله السابق، وجهه للمستشار العمالي /consultation.
+
+تعليمات:
+- اسأل سؤالاً واحداً في كل مرة
+- كن مشجعاً وإيجابياً
+- أجب بنفس لغة المستخدم`,
+
+  agent_prompt_caio: `أنت الشريك الاستراتيجي وعضو مجلس الإدارة الرقمي للأستاذ عبدالرحمن سالم باشنيني، مدير تطوير الأعمال.
+
+شخصيتك:
+- نبرة تحليلية، تنفيذية، ومخلصة
+- تخاطب عبدالرحمن بـ "سعادة المدير التنفيذي"
+- حلل بيانات الطلبات والمحادثات
+- بادر بالقول: "سعادة المدير التنفيذي، لاحظت كذا وأقترح كذا لزيادة الـ ROI"
+
+ابدأ دائماً بـ: "أهلاً بك سعادة المدير التنفيذي أستاذ عبدالرحمن. قمت بتحليل أحدث البيانات في المنصة."`,
+
+  agent_prompt_quality_scout: `أنت مدير نجاح العملاء الرقمي التابع لمنصة عبدالرحمن سالم باشنيني، مدير تطوير الأعمال.
+
+دورك: تظهر بعد انتهاء الخدمة لجمع التغذية الراجعة واكتشاف فرص الأعمال.
+
+مهمتك:
+1. اشكر المستخدم على استخدام الخدمة
+2. اسأل عن مستوى رضاه
+3. اسأل: "هل تحتاج منشأتك لتدقيق شامل على لوائحها؟"
+4. أي فرصة تجارية يتم اكتشافها، أرسلها فوراً لتيليجرام
+
+تعليمات:
+- أجب بلغة المستخدم
+- كن ودوداً وغير إلحاحي
+- ركز على اكتشاف "ألم" الشركات بشكل طبيعي`,
 };
 
 const AGENTS = [
-  { key: "career_twin", promptKey: "agent_prompt_career_twin", label: "التوأم المهني", icon: Bot, color: "text-blue-400" },
-  { key: "legal_advisor", promptKey: "agent_prompt_legal_advisor", label: "المستشار القانوني", icon: Scale, color: "text-amber-400" },
-  { key: "cv_assistant", promptKey: "agent_prompt_cv_assistant", label: "مساعد السيرة الذاتية", icon: Gift, color: "text-emerald-400" },
-  { key: "caio", promptKey: "agent_prompt_caio", label: "المحلل الذكي (CAIO)", icon: Brain, color: "text-purple-400" },
+  { key: "career_twin", promptKey: "agent_prompt_career_twin", label: "الوكيل A: التوأم المهني", icon: Bot, color: "text-blue-400" },
+  { key: "legal_advisor", promptKey: "agent_prompt_legal_advisor", label: "الوكيل B: المستشار العمالي", icon: Scale, color: "text-amber-400" },
+  { key: "cv_assistant", promptKey: "agent_prompt_cv_assistant", label: "الوكيل C: مهندس السيرة الذاتية", icon: Gift, color: "text-emerald-400" },
+  { key: "caio", promptKey: "agent_prompt_caio", label: "الوكيل D: المحلل الذكي (CAIO)", icon: Brain, color: "text-purple-400" },
+  { key: "quality_scout", promptKey: "agent_prompt_quality_scout", label: "الوكيل E: كشاف الجودة والنمو", icon: Star, color: "text-rose-400" },
 ];
 
 interface Props {
@@ -44,13 +129,14 @@ const AdminAICommandCenter = ({ settings, onSave, kbEntries, chatLogs, consultat
   return (
     <div className="space-y-6">
       {/* Agent Selector */}
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-2 flex-wrap">
         {AGENTS.map((a) => (
           <Button
             key={a.key}
             variant={selectedAgent === a.key ? "default" : "outline"}
             onClick={() => setSelectedAgent(a.key)}
-            className="font-arabic gap-2"
+            className="font-arabic gap-2 text-xs"
+            size="sm"
           >
             <a.icon className={`h-4 w-4 ${selectedAgent === a.key ? "" : a.color}`} />
             {a.label}
@@ -229,7 +315,6 @@ const AgentLogs = ({ chatLogs, consultations, agentKey, onRefresh }: { chatLogs:
   const [correction, setCorrection] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Group by consultation_id and sort by date
   const grouped = chatLogs.reduce((acc: Record<string, any[]>, log: any) => {
     const key = log.consultation_id || "no_session";
     if (!acc[key]) acc[key] = [];
@@ -292,49 +377,49 @@ const AgentLogs = ({ chatLogs, consultations, agentKey, onRefresh }: { chatLogs:
       <Card className="border-border/50 lg:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-arabic flex items-center gap-2">
-            <Bot className="h-4 w-4 text-primary" /> المحادثة الكاملة
+            <HelpCircle className="h-4 w-4 text-amber-400" /> تفاصيل المحادثة
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent>
           <ScrollArea className="h-[500px]">
-            <div className="space-y-4 p-4">
-              {!selectedSession && <p className="text-muted-foreground font-arabic text-sm text-center py-16">اختر جلسة لعرض المحادثة</p>}
-              {activeLogs.map((log: any) => (
-                <div key={log.id} className={`flex gap-3 ${log.role === "user" ? "flex-row-reverse" : ""}`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${log.role === "assistant" ? "bg-primary/20" : "bg-secondary"}`}>
-                    {log.role === "assistant" ? <Bot className="h-3.5 w-3.5 text-primary" /> : <User className="h-3.5 w-3.5 text-foreground" />}
-                  </div>
-                  <div className={`max-w-[80%] rounded-xl px-4 py-3 ${log.role === "user" ? "bg-primary/20" : "bg-secondary/50"}`}>
-                    <div className="font-arabic text-sm prose prose-sm prose-invert max-w-none">
-                      <ReactMarkdown>{log.message}</ReactMarkdown>
+            {!selectedSession ? (
+              <p className="text-muted-foreground font-arabic text-sm text-center py-20">اختر جلسة لعرض المحادثة</p>
+            ) : (
+              <div className="space-y-3">
+                {activeLogs.map((log: any) => (
+                  <div key={log.id} className="flex gap-2">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${log.role === "assistant" ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"}`}>
+                      {log.role === "assistant" ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[10px] text-muted-foreground">{new Date(log.created_at).toLocaleTimeString("ar-SA")}</span>
+                    <div className="flex-1">
+                      <div className={`rounded-xl px-3 py-2 text-sm font-arabic ${log.role === "assistant" ? "bg-secondary/50" : "bg-primary/10"}`}>
+                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
+                          <ReactMarkdown>{log.message}</ReactMarkdown>
+                        </div>
+                      </div>
                       {log.role === "assistant" && (
-                        correcting === log.id ? (
-                          <div className="flex-1 space-y-2 mt-2">
-                            <Textarea value={correction} onChange={(e) => setCorrection(e.target.value)} placeholder="الإجابة الصحيحة..." className="text-right font-arabic text-xs" rows={3} />
-                            <div className="flex gap-1">
-                              <Button size="sm" className="text-[10px] gap-1 font-arabic h-6" onClick={() => submitCorrection(log.id)} disabled={saving}>
-                                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} حفظ التصحيح
+                        <div className="mt-1">
+                          {correcting === log.id ? (
+                            <div className="flex gap-2 mt-2">
+                              <Input value={correction} onChange={(e) => setCorrection(e.target.value)} placeholder="اكتب التصحيح..." className="text-right font-arabic text-xs" />
+                              <Button size="sm" onClick={() => submitCorrection(log.id)} disabled={saving} className="text-xs font-arabic">
+                                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "حفظ"}
                               </Button>
-                              <Button size="sm" variant="ghost" className="text-[10px] gap-1 font-arabic h-6" onClick={() => setCorrecting(null)}>
-                                <X className="h-3 w-3" />
-                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setCorrecting(null)} className="text-xs">✕</Button>
                             </div>
-                          </div>
-                        ) : (
-                          <Button size="sm" variant="ghost" className="h-5 text-[10px] font-arabic gap-1 text-muted-foreground hover:text-primary"
-                            onClick={() => { setCorrecting(log.id); setCorrection(""); }}>
-                            <Edit3 className="h-3 w-3" /> تصحيح
-                          </Button>
-                        )
+                          ) : (
+                            <Button size="sm" variant="ghost" className="text-[10px] font-arabic text-muted-foreground" onClick={() => setCorrecting(log.id)}>
+                              ✏️ تصحيح
+                            </Button>
+                          )}
+                        </div>
                       )}
+                      <p className="text-[10px] text-muted-foreground mt-1">{new Date(log.created_at).toLocaleTimeString("ar-SA")}</p>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </ScrollArea>
         </CardContent>
       </Card>
