@@ -45,14 +45,12 @@ const AdminCAIO = ({ chatLogs, consultations, jobApps, companyReqs, contactMessa
 
     let assistantSoFar = "";
     try {
-      const systemPrompt = `أنت كبير مسؤولي الذكاء الاصطناعي (CAIO) لمنصة عبدالرحمن باشنيني. مهمتك تحليل بيانات المنصة والإجابة على أسئلة استراتيجية حول نمو الأعمال.\n\n${buildContext()}`;
-
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
         body: JSON.stringify({
-          messages: [{ role: "system", content: systemPrompt }, ...allMessages.map((m) => ({ role: m.role, content: m.content }))],
-          agent: "career_twin",
+          messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
+          agent: "caio",
         }),
       });
 
