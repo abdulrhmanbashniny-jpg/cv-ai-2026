@@ -269,8 +269,38 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
       { role: "system", content: systemPrompt },
     ];
 
-    for (const msg of messages.slice(0, -1)) {
-      aiMessages.push({ role: msg.role, content: msg.content });
+    // For CAIO sessions: fetch last 15 messages from DB for continuity
+    if (agentType === "caio" && session_id) {
+      const { data: sessionHistory } = await supabase
+        .from("chat_logs")
+        .select("role, message")
+        .eq("session_id", session_id)
+        .order("created_at", { ascending: true })
+        .limit(15);
+
+      if (sessionHistory && sessionHistory.length > 0) {
+        // Add stored history before new messages
+        for (const h of sessionHistory) {
+          aiMessages.push({ role: h.role, content: h.message });
+        }
+      }
+
+      // Check session status for greeting context
+      const { data: sessionData } = await supabase
+        .from("caio_sessions")
+        .select("status, title")
+        .eq("id", session_id)
+        .maybeSingle();
+
+      if (sessionData && (!sessionHistory || sessionHistory.length === 0)) {
+        // New session - the system prompt already has greeting instruction
+        aiMessages[0].content += "\n\nهذه جلسة استراتيجية جديدة بعنوان: \"" + (sessionData.title || "جلسة جديدة") + "\". ابدأ بتحية مناسبة.";
+      }
+    } else {
+      // Non-session: use provided message history
+      for (const msg of messages.slice(0, -1)) {
+        aiMessages.push({ role: msg.role, content: msg.content });
+      }
     }
 
     if (multimodal_content && multimodal_content.length > 0) {
