@@ -18,12 +18,14 @@ const DEFAULT_PROMPTS: Record<string, string> = {
   agent_prompt_career_twin: `أنت عبدالرحمن باشنيني، مدير أول الموارد البشرية والشؤون القانونية بخبرة تفوق 15 عامًا...`,
   agent_prompt_legal_advisor: `أنت المستشار القانوني الذكي للأستاذ عبدالرحمن باشنيني...`,
   agent_prompt_cv_assistant: `أنت مساعد كتابة السيرة الذاتية المجاني من فريق الأستاذ عبدالرحمن باشنيني...`,
+  agent_prompt_caio: `أنت كبير مسؤولي الذكاء الاصطناعي (CAIO) - الشريك الاستراتيجي الأول للمدير التنفيذي عبدالرحمن باشنيني. لست عبدالرحمن، بل أنت مستشاره الاستراتيجي الموثوق الذي يحلل بيانات المنصة ويقدم رؤى تنفيذية.\n\nشخصيتك:\n- نبرة تحليلية، تنفيذية، ومخلصة\n- تخاطب عبدالرحمن بـ "سعادة المدير التنفيذي" أو "أستاذ عبدالرحمن"\n- تقدم أرقاماً وتحليلات حقيقية مبنية على البيانات المتاحة\n- تقترح استراتيجيات نمو قابلة للتنفيذ\n\nابدأ دائماً بـ: "أهلاً بك سعادة المدير التنفيذي أستاذ عبدالرحمن. قمت بتحليل أحدث البيانات في المنصة، وأنا جاهز لمناقشة استراتيجيات النمو معك."`,
 };
 
 const AGENTS = [
   { key: "career_twin", promptKey: "agent_prompt_career_twin", label: "التوأم المهني", icon: Bot, color: "text-blue-400" },
   { key: "legal_advisor", promptKey: "agent_prompt_legal_advisor", label: "المستشار القانوني", icon: Scale, color: "text-amber-400" },
   { key: "cv_assistant", promptKey: "agent_prompt_cv_assistant", label: "مساعد السيرة الذاتية", icon: Gift, color: "text-emerald-400" },
+  { key: "caio", promptKey: "agent_prompt_caio", label: "المحلل الذكي (CAIO)", icon: Brain, color: "text-purple-400" },
 ];
 
 interface Props {

@@ -33,23 +33,7 @@ const AdminCAIO = ({ chatLogs, consultations, jobApps, companyReqs, contactMessa
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  const buildContext = () => {
-    const totalChats = chatLogs.length;
-    const totalConsultations = consultations.length;
-    const totalJobApps = jobApps.length;
-    const totalCompanyReqs = companyReqs.length;
-    const totalContacts = contactMessages.length;
-    const recentUserMessages = chatLogs.filter((l: any) => l.role === "user").slice(-30).map((l: any) => l.message).join("\n- ");
-    const categories = consultations.reduce((acc: Record<string, number>, c: any) => { acc[c.issue_category] = (acc[c.issue_category] || 0) + 1; return acc; }, {});
-    return `بيانات المنصة الحالية:
-- إجمالي المحادثات: ${totalChats}
-- إجمالي الاستشارات: ${totalConsultations}
-- طلبات التوظيف: ${totalJobApps}
-- طلبات الشركات: ${totalCompanyReqs}
-- رسائل التواصل: ${totalContacts}
-- فئات الاستشارات: ${Object.entries(categories).map(([k, v]) => `${k}: ${v}`).join(", ")}
-- آخر أسئلة المستخدمين: ${recentUserMessages || "لا توجد"}`;
-  };
+  // No longer building client-side context - the edge function handles full DB snapshot for CAIO agent
 
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatLoading) return;
@@ -61,14 +45,12 @@ const AdminCAIO = ({ chatLogs, consultations, jobApps, companyReqs, contactMessa
 
     let assistantSoFar = "";
     try {
-      const systemPrompt = `أنت كبير مسؤولي الذكاء الاصطناعي (CAIO) لمنصة عبدالرحمن باشنيني. مهمتك تحليل بيانات المنصة والإجابة على أسئلة استراتيجية حول نمو الأعمال.\n\n${buildContext()}`;
-
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
         body: JSON.stringify({
-          messages: [{ role: "system", content: systemPrompt }, ...allMessages.map((m) => ({ role: m.role, content: m.content }))],
-          agent: "career_twin",
+          messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
+          agent: "caio",
         }),
       });
 
@@ -116,12 +98,10 @@ const AdminCAIO = ({ chatLogs, consultations, jobApps, companyReqs, contactMessa
     setGenerating(true);
     setReport("");
     try {
-      const analyticsPrompt = `أنت كبير مسؤولي الذكاء الاصطناعي (CAIO). ${buildContext()}\n\nأنشئ تقريراً تنفيذياً بـ 3 أقسام:\n### 1. تقييم أداء الوكلاء\n### 2. اقتراحات تحسين البرومبت\n### 3. رؤى الجمهور واقتراحات الأعمال`;
-
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ messages: [{ role: "user", content: analyticsPrompt }], agent: "career_twin" }),
+        body: JSON.stringify({ messages: [{ role: "user", content: "أنشئ تقريراً تنفيذياً شاملاً بـ 4 أقسام:\n### 1. ملخص أداء المنصة (أرقام حقيقية)\n### 2. تقييم أداء الوكلاء\n### 3. تحليل المبيعات والنماذج المميزة\n### 4. رؤى استراتيجية واقتراحات النمو" }], agent: "caio" }),
       });
 
       if (!resp.ok) throw new Error("فشل في إنشاء التقرير");
