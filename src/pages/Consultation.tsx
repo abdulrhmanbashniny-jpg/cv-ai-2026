@@ -40,6 +40,7 @@ const Consultation = () => {
   const [visitorPhone, setVisitorPhone] = useState("");
   const [category, setCategory] = useState("");
   const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
