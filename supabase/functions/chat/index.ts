@@ -163,7 +163,61 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext;
+    // For CAIO agent: inject full database snapshot
+    let dbSnapshot = "";
+    if (agentType === "caio") {
+      const [
+        { count: jobCount },
+        { count: companyCount },
+        { count: consultCount },
+        { count: leadCount },
+        { count: chatCount },
+        { count: orderCount },
+        { data: recentOrders },
+        { data: topTemplates },
+        { data: recentConsults },
+        { data: recentJobApps },
+      ] = await Promise.all([
+        supabase.from("job_applications").select("*", { count: "exact", head: true }),
+        supabase.from("company_requests").select("*", { count: "exact", head: true }),
+        supabase.from("consultations").select("*", { count: "exact", head: true }),
+        supabase.from("leads").select("*", { count: "exact", head: true }),
+        supabase.from("chat_logs").select("*", { count: "exact", head: true }),
+        supabase.from("premium_orders").select("*", { count: "exact", head: true }),
+        supabase.from("premium_orders").select("*").order("created_at", { ascending: false }).limit(10),
+        supabase.from("templates").select("title, downloads_count, type, category").order("downloads_count", { ascending: false }).limit(10),
+        supabase.from("consultations").select("issue_category, status, created_at, visitor_name").order("created_at", { ascending: false }).limit(10),
+        supabase.from("job_applications").select("full_name, department, city, status, created_at").order("created_at", { ascending: false }).limit(10),
+      ]);
+
+      const paidOrders = (recentOrders || []).filter((o: any) => o.status === "paid").length;
+      const pendingOrders = (recentOrders || []).filter((o: any) => o.status === "pending").length;
+      const categories = (recentConsults || []).reduce((acc: Record<string, number>, c: any) => { acc[c.issue_category] = (acc[c.issue_category] || 0) + 1; return acc; }, {});
+
+      dbSnapshot = `\n\n=== لقطة بيانات المنصة الحية (Database Snapshot) ===
+📊 الإحصائيات الإجمالية:
+- طلبات التوظيف: ${jobCount || 0}
+- طلبات الشركات: ${companyCount || 0}
+- الاستشارات: ${consultCount || 0}
+- العملاء المحتملون (Leads): ${leadCount || 0}
+- إجمالي رسائل الدردشة: ${chatCount || 0}
+- طلبات النماذج المميزة: ${orderCount || 0} (مدفوع: ${paidOrders}, معلق: ${pendingOrders})
+
+📈 أكثر النماذج تحميلاً:
+${(topTemplates || []).map((t: any, i: number) => `${i + 1}. ${t.title} (${t.downloads_count} تحميل) - ${t.type === "premium" ? "مميز 💎" : "مجاني"}`).join("\n")}
+
+🏷️ فئات الاستشارات الأخيرة:
+${Object.entries(categories).map(([k, v]) => `- ${k}: ${v}`).join("\n") || "لا توجد بيانات"}
+
+📋 آخر طلبات التوظيف:
+${(recentJobApps || []).slice(0, 5).map((j: any) => `- ${j.full_name} | ${j.department} | ${j.city} | ${j.status}`).join("\n") || "لا توجد"}
+
+💰 آخر الطلبات المميزة:
+${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.template_name} | ${o.status}`).join("\n") || "لا توجد"}
+=== نهاية اللقطة ===`;
+    }
+
+    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext + dbSnapshot;
 
     // Build messages for the AI - handle multimodal content
     const aiMessages: any[] = [

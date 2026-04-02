@@ -98,12 +98,10 @@ const AdminCAIO = ({ chatLogs, consultations, jobApps, companyReqs, contactMessa
     setGenerating(true);
     setReport("");
     try {
-      const analyticsPrompt = `أنت كبير مسؤولي الذكاء الاصطناعي (CAIO). ${buildContext()}\n\nأنشئ تقريراً تنفيذياً بـ 3 أقسام:\n### 1. تقييم أداء الوكلاء\n### 2. اقتراحات تحسين البرومبت\n### 3. رؤى الجمهور واقتراحات الأعمال`;
-
       const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ messages: [{ role: "user", content: analyticsPrompt }], agent: "career_twin" }),
+        body: JSON.stringify({ messages: [{ role: "user", content: "أنشئ تقريراً تنفيذياً شاملاً بـ 4 أقسام:\n### 1. ملخص أداء المنصة (أرقام حقيقية)\n### 2. تقييم أداء الوكلاء\n### 3. تحليل المبيعات والنماذج المميزة\n### 4. رؤى استراتيجية واقتراحات النمو" }], agent: "caio" }),
       });
 
       if (!resp.ok) throw new Error("فشل في إنشاء التقرير");
