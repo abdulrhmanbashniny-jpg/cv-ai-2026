@@ -82,8 +82,17 @@ const Consultation = () => {
     fetchUrl();
   }, []);
 
+  const handleStartChat = () => {
+    if (!visitorName.trim() || !visitorPhone.trim() || !category) return;
+    if (!consent) {
+      setConsentError(true);
+      return;
+    }
+    setConsentError(false);
+    startChat();
+  };
+
   const startChat = () => {
-    if (!visitorName.trim() || !visitorPhone.trim() || !category || !consent) return;
     const ref = generateRefNumber();
     const sid = uuidv4();
     setRefNumber(ref);
