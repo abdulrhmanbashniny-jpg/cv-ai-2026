@@ -331,13 +331,16 @@ const Consultation = () => {
           )}
 
           {step === "done" && (
-            <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto text-center">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold font-arabic text-foreground mb-2">تم إنهاء الاستشارة</h3>
-              <p className="text-muted-foreground font-arabic mb-4">رقم المرجع: <span className="text-primary font-bold">{refNumber}</span></p>
-              <p className="text-muted-foreground font-arabic text-sm mb-6">احتفظ برقم المرجع للمتابعة.</p>
-              <Button onClick={() => window.location.href = "/"} className="bg-gold-shimmer text-primary-foreground font-arabic">العودة للرئيسية</Button>
-            </div>
+            <>
+              <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto text-center">
+                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+                <h3 className="text-xl font-bold font-arabic text-foreground mb-2">تم إنهاء الاستشارة</h3>
+                <p className="text-muted-foreground font-arabic mb-4">رقم المرجع: <span className="text-primary font-bold">{refNumber}</span></p>
+                <p className="text-muted-foreground font-arabic text-sm mb-6">احتفظ برقم المرجع للمتابعة.</p>
+                <Button onClick={() => window.location.href = "/"} className="bg-gold-shimmer text-primary-foreground font-arabic">العودة للرئيسية</Button>
+              </div>
+              <QualityScoutChat serviceName="الاستشارة القانونية" onClose={() => {}} />
+            </>
           )}
         </div>
       </section>

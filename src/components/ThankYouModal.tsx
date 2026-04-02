@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Crown, ExternalLink, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-interface ThankYouModalProps {
+import QualityScoutChat from "@/components/QualityScoutChat";
   open: boolean;
   onClose: () => void;
   templateTitle: string;
