@@ -45,7 +45,7 @@ serve(async (req) => {
   }
 
   try {
-    const { table, action, data, id } = await req.json();
+    const { table, action, data, id, filters } = await req.json();
 
     if (table && !VALID_TABLES.includes(table)) {
       return new Response(JSON.stringify({ error: "Invalid table" }), {
