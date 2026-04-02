@@ -310,11 +310,13 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
     }
 
     // Save user message to chat_logs
-    await supabase.from("chat_logs").insert({
+    const logData: any = {
       role: "user",
       message: userMessage,
-      consultation_id: consultation_id || session_id || null,
-    });
+      consultation_id: consultation_id || null,
+    };
+    if (session_id) logData.session_id = session_id;
+    await supabase.from("chat_logs").insert(logData);
 
     // Call Lovable AI
     const response = await fetch(
