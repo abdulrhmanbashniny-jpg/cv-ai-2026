@@ -9,6 +9,36 @@ const corsHeaders = {
 
 const VALID_TABLES = ["job_applications", "company_requests", "consultations", "chat_logs", "ai_knowledge_base", "admin_settings", "contact_requests", "portfolio_content", "templates", "leads", "premium_orders", "notification_settings"];
 
+// Tables that anonymous users are allowed to read (for public-facing features like footer settings)
+const PUBLIC_READ_TABLES = ["admin_settings", "portfolio_content", "templates", "notification_settings"];
+
+// Actions that don't require authentication (read-only public data)
+const PUBLIC_ACTIONS: string[] = [];
+
+async function verifyAdmin(req: Request): Promise<{ authenticated: boolean; error?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { authenticated: false, error: "Missing authorization header" };
+  }
+
+  const token = authHeader.replace("Bearer ", "");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) {
+    return { authenticated: false, error: "Invalid or expired session" };
+  }
+
+  // Check admin_password from settings as a secondary check
+  // The user must be authenticated via Supabase Auth
+  return { authenticated: true };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,6 +57,21 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Determine if this request needs authentication
+    const isPublicRead = !action && table && PUBLIC_READ_TABLES.includes(table);
+    const isPublicAction = action && PUBLIC_ACTIONS.includes(action);
+
+    if (!isPublicRead && !isPublicAction) {
+      // All write operations and sensitive reads require authentication
+      const { authenticated, error: authError } = await verifyAdmin(req);
+      if (!authenticated) {
+        return new Response(JSON.stringify({ error: authError || "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Insert
     if (action === "insert" && table && data) {
@@ -135,7 +180,6 @@ serve(async (req) => {
       const { json_credentials, folder_id: rawFolderId } = data || {};
       const folderId = (rawFolderId || "").trim().replace(/[^\w-]/g, "");
 
-      // Validate JSON format
       let creds: any;
       try {
         creds = typeof json_credentials === "string" ? JSON.parse(json_credentials) : json_credentials;
@@ -151,7 +195,7 @@ serve(async (req) => {
       }
 
       if (!folderId) {
-        return new Response(JSON.stringify({ ok: false, error: "Folder ID is required (was empty after trimming)", details: { step: "folder_id_validation" } }), {
+        return new Response(JSON.stringify({ ok: false, error: "Folder ID is required", details: { step: "folder_id_validation" } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -162,10 +206,8 @@ serve(async (req) => {
       logs.push(`Token URI: ${creds.token_uri}`);
 
       try {
-        // Fix private key: replace escaped \\n with real newlines
         creds.private_key = creds.private_key.replace(/\\n/g, "\n");
 
-        // Build JWT for Google API (use full drive scope, not just drive.file)
         const header = btoa(JSON.stringify({ alg: "RS256", typ: "JWT" }));
         const now = Math.floor(Date.now() / 1000);
         const claimSet = btoa(JSON.stringify({
@@ -176,7 +218,6 @@ serve(async (req) => {
           iat: now,
         }));
 
-        // Import private key and sign JWT
         const pemContent = creds.private_key.replace(/-----BEGIN PRIVATE KEY-----/g, "").replace(/-----END PRIVATE KEY-----/g, "").replace(/\s/g, "");
         const binaryKey = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0));
         const cryptoKey = await crypto.subtle.importKey("pkcs8", binaryKey, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
@@ -186,7 +227,6 @@ serve(async (req) => {
         const jwt = `${header}.${claimSet}.${encodedSig}`;
         logs.push("JWT signed successfully");
 
-        // Exchange JWT for access token
         const tokenRes = await fetch(creds.token_uri, {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -202,7 +242,6 @@ serve(async (req) => {
         const accessToken = tokenData.access_token;
         logs.push("Access token obtained");
 
-        // Step 1: List files in folder to confirm access
         const listUrl = `https://www.googleapis.com/drive/v3/files?q='${folderId}'+in+parents&pageSize=1&fields=files(id,name)`;
         const listRes = await fetch(listUrl, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -221,7 +260,6 @@ serve(async (req) => {
         }
         logs.push(`Folder accessible, ${listBody.files?.length || 0} file(s) found`);
 
-        // Step 2: Get folder metadata to confirm it exists
         const folderRes = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?fields=id,name,mimeType`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
@@ -239,8 +277,6 @@ serve(async (req) => {
         }
         logs.push(`Folder name: "${folderBody.name}", type: ${folderBody.mimeType}`);
 
-        // Folder metadata succeeded — connection is valid
-        // Skip upload test (service accounts have 0GB quota; actual uploads use folder owner's quota via parents)
         return new Response(JSON.stringify({ ok: true, service_account: creds.client_email, folder_name: folderBody.name, details: { logs } }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

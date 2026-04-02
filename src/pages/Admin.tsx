@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Lock, Menu, Save, Loader2, AlertTriangle } from "lucide-react";
+import { Lock, Menu, Save, Loader2, AlertTriangle, LogOut } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminDashboard from "@/components/admin/AdminDashboard";
@@ -24,7 +24,10 @@ import AdminNotifications from "@/components/admin/AdminNotifications";
 
 const Admin = () => {
   const [authed, setAuthed] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(false);
 
@@ -38,37 +41,46 @@ const Admin = () => {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [systemHealth, setSystemHealth] = useState<{ ai: boolean | null; telegram: boolean | null; database: boolean | null }>({ ai: null, telegram: null, database: null });
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [savingPassword, setSavingPassword] = useState(false);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [savingMaintenance, setSavingMaintenance] = useState(false);
 
+  // Check for existing Supabase Auth session
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setAuthed(true);
+      }
+      setAuthLoading(false);
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session?.user);
+      if (!session?.user) setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const login = async () => {
-    try {
-      const { data } = await supabase.functions.invoke("admin-data", { body: { table: "admin_settings" } });
-      const allSettings = data?.data || [];
-      const dbPass = allSettings.find((s: any) => s.setting_key === "admin_password")?.setting_value;
-      const correctPass = dbPass || "Bashniny@2024";
-      if (password === correctPass) {
-        setAuthed(true);
-        sessionStorage.setItem("admin_auth", "true");
-      } else {
-        toast({ title: "خطأ", description: "كلمة المرور غير صحيحة", variant: "destructive" });
-      }
-    } catch {
-      if (password === "Bashniny@2024") {
-        setAuthed(true);
-        sessionStorage.setItem("admin_auth", "true");
-      } else {
-        toast({ title: "خطأ", description: "كلمة المرور غير صحيحة", variant: "destructive" });
-      }
+    if (!email.trim() || !password.trim()) {
+      toast({ title: "خطأ", description: "البريد الإلكتروني وكلمة المرور مطلوبان", variant: "destructive" });
+      return;
     }
+    setLoginLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      toast({ title: "خطأ", description: "بيانات الدخول غير صحيحة", variant: "destructive" });
+    }
+    setLoginLoading(false);
   };
 
-  const logout = () => { setAuthed(false); sessionStorage.removeItem("admin_auth"); };
+  const logout = async () => {
+    await supabase.auth.signOut();
+    setAuthed(false);
+  };
 
-  useEffect(() => { if (sessionStorage.getItem("admin_auth") === "true") setAuthed(true); }, []);
   useEffect(() => { if (authed) loadData(); }, [authed]);
 
   const loadData = async () => {
@@ -122,22 +134,6 @@ const Admin = () => {
     setSettings(updated);
   };
 
-  const changePassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ title: "خطأ", description: "كلمات المرور غير متطابقة", variant: "destructive" });
-      return;
-    }
-    setSavingPassword(true);
-    await saveSettings([{ setting_key: "admin_password", setting_value: newPassword }]);
-    setSavingPassword(false);
-    setNewPassword(""); setConfirmPassword("");
-    toast({ title: "تم", description: "تم تغيير كلمة المرور بنجاح" });
-  };
-
   const toggleMaintenance = async (val: boolean) => {
     setSavingMaintenance(true);
     setMaintenanceMode(val);
@@ -146,6 +142,14 @@ const Admin = () => {
     toast({ title: "تم", description: val ? "تم تفعيل وضع الصيانة" : "تم إيقاف وضع الصيانة" });
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-navy-gradient flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!authed) {
     return (
       <div dir="rtl" className="min-h-screen bg-navy-gradient flex items-center justify-center">
@@ -153,10 +157,30 @@ const Admin = () => {
           <div className="text-center mb-6">
             <Lock className="h-12 w-12 text-primary mx-auto mb-3" />
             <h2 className="text-xl font-bold font-arabic text-foreground">لوحة التحكم</h2>
-            <p className="text-muted-foreground font-arabic text-sm">أدخل كلمة المرور للدخول</p>
+            <p className="text-muted-foreground font-arabic text-sm">سجّل دخولك للمتابعة</p>
           </div>
-          <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && login()} placeholder="كلمة المرور" className="mb-4 text-right font-arabic" />
-          <Button onClick={login} className="w-full bg-gold-shimmer text-primary-foreground font-arabic">دخول</Button>
+          <div className="space-y-3">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && login()}
+              placeholder="البريد الإلكتروني"
+              className="text-right font-arabic"
+              dir="ltr"
+            />
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && login()}
+              placeholder="كلمة المرور"
+              className="text-right font-arabic"
+            />
+            <Button onClick={login} disabled={loginLoading} className="w-full bg-gold-shimmer text-primary-foreground font-arabic">
+              {loginLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "دخول"}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -204,18 +228,6 @@ const Admin = () => {
               {activeTab === "integrations" && <AdminIntegrations settings={settings} onSave={saveSettings} />}
               {activeTab === "settings" && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="border-border/50">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-arabic flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> تغيير كلمة المرور</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div><label className="block font-arabic text-xs text-muted-foreground mb-1">كلمة المرور الجديدة</label><Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="text-right font-arabic" placeholder="••••••••" /></div>
-                      <div><label className="block font-arabic text-xs text-muted-foreground mb-1">تأكيد كلمة المرور</label><Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="text-right font-arabic" placeholder="••••••••" /></div>
-                      <Button onClick={changePassword} disabled={savingPassword} className="w-full bg-gold-shimmer text-primary-foreground font-arabic gap-2">
-                        {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} حفظ كلمة المرور
-                      </Button>
-                    </CardContent>
-                  </Card>
                   <Card className="border-border/50">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-sm font-arabic flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-400" /> وضع الصيانة</CardTitle>
