@@ -75,9 +75,24 @@ serve(async (req) => {
 
     // Insert
     if (action === "insert" && table && data) {
-      const { error } = await supabase.from(table).insert(data);
+      const { data: inserted, error } = await supabase.from(table).insert(data).select();
       if (error) throw error;
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true, data: inserted }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Select with filters
+    if (action === "select" && table) {
+      let query = supabase.from(table).select("*").order("created_at", { ascending: false }).limit(200);
+      if (filters && typeof filters === "object") {
+        for (const [key, value] of Object.entries(filters)) {
+          query = query.eq(key, value);
+        }
+      }
+      const { data: rows, error } = await query;
+      if (error) throw error;
+      return new Response(JSON.stringify({ data: rows }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
