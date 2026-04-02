@@ -366,11 +366,13 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
           const { done, value } = await reader.read();
           if (done) {
             if (fullResponse) {
-              await supabase.from("chat_logs").insert({
+              const assistantLog: any = {
                 role: "assistant",
                 message: fullResponse,
-                consultation_id: consultation_id || session_id || null,
-              });
+                consultation_id: consultation_id || null,
+              };
+              if (session_id) assistantLog.session_id = session_id;
+              await supabase.from("chat_logs").insert(assistantLog);
             }
             controller.close();
             break;
