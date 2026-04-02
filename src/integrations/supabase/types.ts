@@ -68,6 +68,30 @@ export type Database = {
         }
         Relationships: []
       }
+      caio_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chat_logs: {
         Row: {
           consultation_id: string | null
@@ -75,6 +99,7 @@ export type Database = {
           id: string
           message: string
           role: string
+          session_id: string | null
         }
         Insert: {
           consultation_id?: string | null
@@ -82,6 +107,7 @@ export type Database = {
           id?: string
           message: string
           role: string
+          session_id?: string | null
         }
         Update: {
           consultation_id?: string | null
@@ -89,6 +115,7 @@ export type Database = {
           id?: string
           message?: string
           role?: string
+          session_id?: string | null
         }
         Relationships: [
           {
@@ -96,6 +123,13 @@ export type Database = {
             columns: ["consultation_id"]
             isOneToOne: false
             referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "caio_sessions"
             referencedColumns: ["id"]
           },
         ]

@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const VALID_TABLES = ["job_applications", "company_requests", "consultations", "chat_logs", "ai_knowledge_base", "admin_settings", "contact_requests", "portfolio_content", "templates", "leads", "premium_orders", "notification_settings"];
+const VALID_TABLES = ["job_applications", "company_requests", "consultations", "chat_logs", "ai_knowledge_base", "admin_settings", "contact_requests", "portfolio_content", "templates", "leads", "premium_orders", "notification_settings", "caio_sessions"];
 
 // Tables that anonymous users are allowed to read (for public-facing features like footer settings)
 const PUBLIC_READ_TABLES = ["admin_settings", "portfolio_content", "templates", "notification_settings"];
@@ -45,7 +45,7 @@ serve(async (req) => {
   }
 
   try {
-    const { table, action, data, id } = await req.json();
+    const { table, action, data, id, filters } = await req.json();
 
     if (table && !VALID_TABLES.includes(table)) {
       return new Response(JSON.stringify({ error: "Invalid table" }), {
@@ -75,9 +75,24 @@ serve(async (req) => {
 
     // Insert
     if (action === "insert" && table && data) {
-      const { error } = await supabase.from(table).insert(data);
+      const { data: inserted, error } = await supabase.from(table).insert(data).select();
       if (error) throw error;
-      return new Response(JSON.stringify({ ok: true }), {
+      return new Response(JSON.stringify({ ok: true, data: inserted }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Select with filters
+    if (action === "select" && table) {
+      let query = supabase.from(table).select("*").order("created_at", { ascending: false }).limit(200);
+      if (filters && typeof filters === "object") {
+        for (const [key, value] of Object.entries(filters)) {
+          query = query.eq(key, value);
+        }
+      }
+      const { data: rows, error } = await query;
+      if (error) throw error;
+      return new Response(JSON.stringify({ data: rows }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
