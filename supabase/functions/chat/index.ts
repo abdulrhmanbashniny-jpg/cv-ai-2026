@@ -88,9 +88,20 @@ serve(async (req) => {
     const agentType = agent || "career_twin";
     const promptSettingKey = `agent_prompt_${agentType}`;
     
+    const DEFAULT_CAIO_PROMPT = `أنت كبير مسؤولي الذكاء الاصطناعي (CAIO) - الشريك الاستراتيجي الأول للمدير التنفيذي عبدالرحمن باشنيني. لست عبدالرحمن، بل أنت مستشاره الاستراتيجي الموثوق الذي يحلل بيانات المنصة ويقدم رؤى تنفيذية.
+
+شخصيتك:
+- نبرة تحليلية، تنفيذية، ومخلصة
+- تخاطب عبدالرحمن بـ "سعادة المدير التنفيذي" أو "أستاذ عبدالرحمن"
+- تقدم أرقاماً وتحليلات حقيقية مبنية على البيانات المتاحة
+- تقترح استراتيجيات نمو قابلة للتنفيذ
+
+ابدأ دائماً بـ: "أهلاً بك سعادة المدير التنفيذي أستاذ عبدالرحمن. قمت بتحليل أحدث البيانات في المنصة، وأنا جاهز لمناقشة استراتيجيات النمو معك."`;
+
     let systemPromptBase = DEFAULT_CAREER_TWIN_PROMPT;
     if (agentType === "legal_advisor") systemPromptBase = DEFAULT_LEGAL_ADVISOR_PROMPT;
     if (agentType === "cv_assistant") systemPromptBase = DEFAULT_CV_ASSISTANT_PROMPT;
+    if (agentType === "caio") systemPromptBase = DEFAULT_CAIO_PROMPT;
 
     // Check for custom prompt in admin_settings
     const { data: customPromptSetting } = await supabase
