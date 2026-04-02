@@ -40,6 +40,7 @@ const Consultation = () => {
   const [visitorPhone, setVisitorPhone] = useState("");
   const [category, setCategory] = useState("");
   const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
   const [sessionId, setSessionId] = useState("");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -81,8 +82,17 @@ const Consultation = () => {
     fetchUrl();
   }, []);
 
+  const handleStartChat = () => {
+    if (!visitorName.trim() || !visitorPhone.trim() || !category) return;
+    if (!consent) {
+      setConsentError(true);
+      return;
+    }
+    setConsentError(false);
+    startChat();
+  };
+
   const startChat = () => {
-    if (!visitorName.trim() || !visitorPhone.trim() || !category || !consent) return;
     const ref = generateRefNumber();
     const sid = uuidv4();
     setRefNumber(ref);
@@ -265,12 +275,15 @@ const Consultation = () => {
                 </Select>
               </div>
               <div className="flex items-start gap-2">
-                <Checkbox id="consult-consent" checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-1" />
+                <Checkbox id="consult-consent" checked={consent} onCheckedChange={(v) => { setConsent(v === true); if (v === true) setConsentError(false); }} className="mt-1" />
                 <label htmlFor="consult-consent" className="text-xs text-muted-foreground font-arabic leading-relaxed cursor-pointer">
                   أوافق على <a href="/privacy-policy" target="_blank" className="text-primary underline hover:opacity-80">سياسة الخصوصية</a> ومعالجة بياناتي وفقاً لنظام حماية البيانات الشخصية.
                 </label>
               </div>
-              <Button onClick={startChat} disabled={!visitorName.trim() || !visitorPhone.trim() || !category || !consent} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
+              {consentError && (
+                <p className="text-destructive text-xs font-arabic text-center">يجب الموافقة على سياسة الخصوصية أولاً</p>
+              )}
+              <Button onClick={handleStartChat} disabled={!visitorName.trim() || !visitorPhone.trim() || !category} className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold">
                 بدء الاستشارة
               </Button>
             </div>
