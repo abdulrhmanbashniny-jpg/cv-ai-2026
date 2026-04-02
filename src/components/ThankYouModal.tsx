@@ -15,6 +15,15 @@ interface ThankYouModalProps {
 const ThankYouModal = ({ open, onClose, templateTitle, downloadUrl }: ThankYouModalProps) => {
   const { t } = useLanguage();
   const isPremium = !downloadUrl;
+  const [showScout, setShowScout] = useState(false);
+
+  // Trigger scout 3 seconds after modal opens
+  useState(() => {
+    if (open) {
+      const timer = setTimeout(() => setShowScout(true), 3000);
+      return () => clearTimeout(timer);
+    }
+  });
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
