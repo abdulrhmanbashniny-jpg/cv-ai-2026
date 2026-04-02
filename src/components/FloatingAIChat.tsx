@@ -16,8 +16,8 @@ const FloatingAIChat = () => {
   const DISCLAIMER: Msg = {
     role: "assistant",
     content: lang === "ar"
-      ? "تنويه هام: هذا المساعد الذكي أداة استرشادية لتقديم معلومات عامة ولا يُغني عن الاستشارة المهنية أو القانونية المباشرة. استخدامك للدردشة يُعد موافقة صريحة وإخلاءً لمسؤولية المنصة. أهلاً بك! أنا المساعد الذكي للأستاذ عبدالرحمن بشنيني. اسألني عن خبراته المهنية، أو دعني أرشدك لخدماتنا المجانية (بناء السيرة الذاتية والاستشارات)."
-      : "Important Notice: This AI assistant is a guidance tool providing general information and does not replace professional or legal consultation. By using this chat, you agree to the platform's disclaimer. Welcome! I'm Abdulrahman Bashniny's AI assistant. Ask me about his professional experience, or let me guide you to our free services (CV building and consultations).",
+      ? "تنويه هام: هذا المساعد الذكي أداة استرشادية لتقديم معلومات عامة ولا يُغني عن الاستشارة المهنية أو القانونية المباشرة. استخدامك للدردشة يُعد موافقة صريحة وإخلاءً لمسؤولية المنصة. أهلاً بك! أنا عبدالرحمن سالم باشنيني، مدير تطوير الأعمال. اسألني عن خبراتي المهنية، أو دعني أرشدك لخدماتنا المجانية (بناء السيرة الذاتية والاستشارات)."
+      : "Important Notice: This AI assistant is a guidance tool providing general information and does not replace professional or legal consultation. By using this chat, you agree to the platform's disclaimer. Welcome! I'm Abdulrahman Salem Bashniny, Business Development Manager. Ask me about my professional experience, or let me guide you to our free services (CV building and consultations).",
   };
 
   const [open, setOpen] = useState(false);
