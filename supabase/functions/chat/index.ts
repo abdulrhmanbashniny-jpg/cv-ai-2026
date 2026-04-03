@@ -229,7 +229,7 @@ serve(async (req) => {
       }
 
       const clientName = visitor_name || "زائر";
-      const agentType = agent || "career_twin";
+      const clientPhone = visitor_phone || "";
       const agentLabels: Record<string, string> = {
         career_twin: "التوأم المهني",
         legal_advisor: "المستشار العمالي",
@@ -239,10 +239,9 @@ serve(async (req) => {
         template_architect: "مساعد النماذج والتصميم",
       };
 
-      // Check if this is a premium/custom design request
-      const customDesignKeywords = ["تصميم", "نموذج مخصوص", "نموذج خاص", "تصميم خاص", "premium", "مميز"];
-      const isCustomRequest = (messages || []).some((m: any) => customDesignKeywords.some(kw => m.content?.includes(kw)));
-      const whatsappLink = clientName !== "زائر" ? `https://wa.me/?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك...`)}` : "";
+      // Build WhatsApp link with phone if available
+      const cleanPhone = clientPhone.replace(/[^0-9+]/g, "");
+      const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("+") ? cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك...`)}` : "";
 
       // Send Telegram alert
       const { data: tgSettings } = await supabase
