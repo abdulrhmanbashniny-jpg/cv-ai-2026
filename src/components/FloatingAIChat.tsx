@@ -170,6 +170,46 @@ const FloatingAIChat = () => {
     }
   };
 
+  const endConversation = async () => {
+    if (!sessionData || messages.length < 3) return;
+    setEnding(true);
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            action: "end_conversation",
+            messages: messages.filter((m) => m.content !== DISCLAIMER.content),
+            agent: "career_twin",
+            visitor_name: sessionData.name,
+          }),
+        }
+      );
+      const data = await resp.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: lang === "ar"
+            ? `✅ تم إنهاء المحادثة وإرسال ملخصها للأستاذ عبدالرحمن. شكراً لك ${sessionData.name}!\n\n📝 **الملخص:**\n${data.summary || "تم الإرسال"}`
+            : `✅ Conversation ended and summary sent to Mr. Abdulrahman. Thank you ${sessionData.name}!\n\n📝 **Summary:**\n${data.summary || "Sent successfully"}`,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: t("عذراً، حدث خطأ أثناء إنهاء المحادثة.", "Sorry, an error occurred ending the conversation.") },
+      ]);
+    } finally {
+      setEnding(false);
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !sessionData) return;
     const userMsg: Msg = { role: "user", content: input.trim() };
