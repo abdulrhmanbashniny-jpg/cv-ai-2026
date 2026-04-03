@@ -35,9 +35,6 @@ const Templates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
-  const [aiQuery, setAiQuery] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [thankYouOpen, setThankYouOpen] = useState(false);
