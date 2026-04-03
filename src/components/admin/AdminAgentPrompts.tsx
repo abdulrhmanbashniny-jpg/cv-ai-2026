@@ -40,6 +40,7 @@ const agents = [
   { key: "agent_prompt_cv_assistant", label: "الوكيل C: مهندس السيرة الذاتية", desc: "يساعد المستخدمين في كتابة CV احترافي (صفحة /career-gift)", icon: Gift, color: "text-emerald-400" },
   { key: "agent_prompt_caio", label: "الوكيل D: المحلل الذكي (CAIO)", desc: "الشريك الاستراتيجي للمدير التنفيذي", icon: Brain, color: "text-purple-400" },
   { key: "agent_prompt_quality_scout", label: "الوكيل E: كشاف الجودة والنمو", desc: "يظهر بعد انتهاء الخدمة لاكتشاف فرص الأعمال", icon: Star, color: "text-rose-400" },
+  { key: "agent_prompt_template_architect", label: "الوكيل F: مساعد النماذج والتصميم", desc: "يساعد الزوار في العثور على النماذج أو جمع متطلبات التصميم", icon: FileText, color: "text-cyan-400" },
 ];
 
 const AdminAgentPrompts = ({ settings, onSave }: AdminAgentPromptsProps) => {
