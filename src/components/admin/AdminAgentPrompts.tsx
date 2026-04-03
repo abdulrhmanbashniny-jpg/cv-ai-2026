@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Loader2, Bot, Scale, Gift, RotateCcw, Brain, Star } from "lucide-react";
+import { Save, Loader2, Bot, Scale, Gift, RotateCcw, Brain, Star, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AdminAgentPromptsProps {
