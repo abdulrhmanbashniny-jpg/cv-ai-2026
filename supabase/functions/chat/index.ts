@@ -410,9 +410,22 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
 === نهاية اللقطة ===`;
     }
 
-    // Quality Scout: no special DB context needed (it's a feedback agent)
+    // Template Architect: inject templates list
+    let templateContext = "";
+    if (agentType === "template_architect") {
+      const { data: templates } = await supabase
+        .from("templates")
+        .select("title, description, category, type, gdrive_link")
+        .eq("is_active", true);
 
-    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext + dbSnapshot;
+      if (templates && templates.length > 0) {
+        templateContext = `\n\n=== النماذج المتوفرة في المتجر ===\n${templates.map((t: any) => `- ${t.title} (${t.category}) [${t.type === "premium" ? "مميز 💎" : "مجاني"}]${t.description ? ": " + t.description : ""}`).join("\n")}\n=== نهاية القائمة ===`;
+      } else {
+        templateContext = "\n\nلا توجد نماذج متوفرة حالياً في المتجر.";
+      }
+    }
+
+    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext + dbSnapshot + templateContext;
 
     const aiMessages: any[] = [
       { role: "system", content: systemPrompt },
