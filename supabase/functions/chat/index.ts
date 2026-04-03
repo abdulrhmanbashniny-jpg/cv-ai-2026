@@ -287,6 +287,9 @@ serve(async (req) => {
       case "quality_scout":
         systemPromptBase = DEFAULT_QUALITY_SCOUT_PROMPT;
         break;
+      case "template_architect":
+        systemPromptBase = DEFAULT_TEMPLATE_ARCHITECT_PROMPT;
+        break;
       default:
         systemPromptBase = DEFAULT_CAREER_TWIN_PROMPT;
     }
