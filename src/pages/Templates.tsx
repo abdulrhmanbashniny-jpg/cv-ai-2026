@@ -151,32 +151,8 @@ const Templates = () => {
             )}
           </p>
 
-          {/* AI Matchmaker */}
-          <div className="max-w-xl mx-auto bg-card border border-border rounded-2xl p-4 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span className="font-arabic font-semibold text-sm text-primary">
-                {t("اسأل الذكاء الاصطناعي عن النموذج المناسب", "Ask AI for the right template")}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAISearch()}
-                placeholder={t("مثال: أحتاج نموذج إنذار موظف...", "Example: I need an employee warning template...")}
-                className="font-arabic text-sm"
-              />
-              <Button onClick={handleAISearch} disabled={aiLoading} className="bg-primary text-primary-foreground shrink-0">
-                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
-              </Button>
-            </div>
-            {aiResult && (
-              <div className="mt-3 p-3 bg-secondary rounded-lg text-sm font-arabic text-foreground text-right leading-relaxed">
-                {aiResult}
-              </div>
-            )}
-          </div>
+          {/* AI Template Architect Chat */}
+          <TemplateArchitectChat />
         </section>
 
         {/* Filters */}
