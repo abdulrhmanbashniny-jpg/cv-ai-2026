@@ -264,13 +264,24 @@ serve(async (req) => {
           tgHeaders = { "Content-Type": "application/json" };
         }
         
-        let telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
-          `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
-          `👤 العميل: ${clientName}\n` +
-          `📝 الملخص: ${summary}`;
+        let telegramMsg = "";
         
-        if (isCustomRequest && whatsappLink) {
-          telegramMsg += `\n\n💎 <b>طلب تصميم مخصص!</b>\n📱 واتساب مباشر: ${whatsappLink}`;
+        if (isTemplateArchitect) {
+          telegramMsg = `📐 <b>تقرير متطلبات تصميم نموذج جديد!</b>\n\n` +
+            `👤 العميل: ${clientName}\n` +
+            (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
+            `\n📋 <b>التقرير:</b>\n${summary}` +
+            (whatsappLink ? `\n\n📱 <b>واتساب مباشر:</b> ${whatsappLink}` : "");
+        } else {
+          telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
+            `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
+            `👤 العميل: ${clientName}\n` +
+            (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
+            `📝 الملخص: ${summary}`;
+          
+          if (whatsappLink) {
+            telegramMsg += `\n\n📱 واتساب مباشر: ${whatsappLink}`;
+          }
         }
         
         await fetch(tgUrl, {
