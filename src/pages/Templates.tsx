@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Download, Lock, Sparkles, FileText, Scale, Briefcase, Filter } from "lucide-react";
+import { Download, Lock, FileText, Scale, Briefcase, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LeadCaptureModal from "@/components/LeadCaptureModal";
 import ThankYouModal from "@/components/ThankYouModal";
-import { Loader2, Bot } from "lucide-react";
+import TemplateArchitectChat from "@/components/TemplateArchitectChat";
+import { Loader2 } from "lucide-react";
 
 type Template = {
   id: string;
