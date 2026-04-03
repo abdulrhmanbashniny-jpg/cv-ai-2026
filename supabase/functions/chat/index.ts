@@ -194,15 +194,29 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Generate summary from conversation
+      // Generate summary/report from conversation
       const chatHistory = (messages || []).map((m: any) => `${m.role}: ${m.content}`).join("\n");
+      const agentType = agent || "career_twin";
+      const isTemplateArchitect = agentType === "template_architect";
+      
+      const summarySystemPrompt = isTemplateArchitect
+        ? `أنت كاتب تقارير احترافي. قم بكتابة "تقرير متطلبات تصميم نموذج" بناءً على المحادثة التالية. التقرير يجب أن يتضمن:
+1. نوع النموذج المطلوب
+2. طبيعة نشاط المنشأة
+3. الغرض من النموذج
+4. الحقول والبنود المطلوبة
+5. أي متطلبات خاصة
+6. الرقم المرجعي إن وُجد
+اكتب التقرير بشكل مهني ومختصر بالعربية.`
+        : "لخص هذه المحادثة في 2-3 أسطر بالعربية. ركز على الطلب الرئيسي والنتيجة.";
+      
       const summaryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-lite",
           messages: [
-            { role: "system", content: "لخص هذه المحادثة في 2-3 أسطر بالعربية. ركز على الطلب الرئيسي والنتيجة." },
+            { role: "system", content: summarySystemPrompt },
             { role: "user", content: chatHistory },
           ],
         }),
