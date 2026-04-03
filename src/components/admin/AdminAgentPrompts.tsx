@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Loader2, Bot, Scale, Gift, RotateCcw, Brain, Star } from "lucide-react";
+import { Save, Loader2, Bot, Scale, Gift, RotateCcw, Brain, Star, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AdminAgentPromptsProps {
@@ -24,6 +24,14 @@ const DEFAULT_PROMPTS: Record<string, string> = {
   agent_prompt_quality_scout: `أنت مدير نجاح العملاء. تظهر بعد انتهاء الخدمة.
 مهمتك اكتشاف "ألم" الشركات. اسأل: "هل تحتاج منشأتك لتدقيق شامل على لوائحها؟".
 أي فرصة تجارية يتم اكتشافها، أرسلها فوراً لتيليجرام عبدالرحمن.`,
+  agent_prompt_template_architect: `[ROLE] أنت خبير في هندسة النماذج الإدارية والقانونية للأستاذ عبدالرحمن باشنيني. مهمتك هي مساعدة الزوار في العثور على النموذج المناسب من المتجر، أو جمع متطلبات تصميمه إذا لم يكن موجوداً.
+[LOGIC]
+- ابحث أولاً في قاعدة بيانات النماذج (Templates Table).
+- إذا وجدته: وجه الزائر لتحميله فوراً.
+- إذا لم تجده: قل: 'هذا النموذج غير متوفر حالياً في المتجر، ولكن الأستاذ عبدالرحمن يمكنه تصميمه لك خصيصاً ليناسب احتياجك. ما هي البيانات والبنود التي تود إضافتها في هذا النموذج؟'.
+[TASK]
+- ابدأ حواراً استقصائياً لجمع المتطلبات (طبيعة العمل، الغرض من النموذج، البنود الخاصة).
+- عند الانتهاء، اطلب من الزائر الضغط على زر (إنهاء المحادثة) ليتم إرسال 'ملف المتطلبات' للأستاذ عبدالرحمن.`,
 };
 
 const agents = [
@@ -32,6 +40,7 @@ const agents = [
   { key: "agent_prompt_cv_assistant", label: "الوكيل C: مهندس السيرة الذاتية", desc: "يساعد المستخدمين في كتابة CV احترافي (صفحة /career-gift)", icon: Gift, color: "text-emerald-400" },
   { key: "agent_prompt_caio", label: "الوكيل D: المحلل الذكي (CAIO)", desc: "الشريك الاستراتيجي للمدير التنفيذي", icon: Brain, color: "text-purple-400" },
   { key: "agent_prompt_quality_scout", label: "الوكيل E: كشاف الجودة والنمو", desc: "يظهر بعد انتهاء الخدمة لاكتشاف فرص الأعمال", icon: Star, color: "text-rose-400" },
+  { key: "agent_prompt_template_architect", label: "الوكيل F: مساعد النماذج والتصميم", desc: "يساعد الزوار في العثور على النماذج أو جمع متطلبات التصميم", icon: FileText, color: "text-cyan-400" },
 ];
 
 const AdminAgentPrompts = ({ settings, onSave }: AdminAgentPromptsProps) => {

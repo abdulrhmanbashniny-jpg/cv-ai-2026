@@ -126,6 +126,15 @@ const DEFAULT_QUALITY_SCOUT_PROMPT = `أنت مدير نجاح العملاء ا
 - لا تكن إلحاحياً
 - ركز على اكتشاف "ألم" الشركات بشكل طبيعي`;
 
+const DEFAULT_TEMPLATE_ARCHITECT_PROMPT = `[ROLE] أنت خبير في هندسة النماذج الإدارية والقانونية للأستاذ عبدالرحمن باشنيني. مهمتك هي مساعدة الزوار في العثور على النموذج المناسب من المتجر، أو جمع متطلبات تصميمه إذا لم يكن موجوداً.
+[LOGIC]
+- ابحث أولاً في قاعدة بيانات النماذج (Templates Table).
+- إذا وجدته: وجه الزائر لتحميله فوراً.
+- إذا لم تجده (مثال: نموذج استئذان): لا تعتذر وترحل. بدلاً من ذلك، قل: 'هذا النموذج غير متوفر حالياً في المتجر، ولكن الأستاذ عبدالرحمن يمكنه تصميمه لك خصيصاً ليناسب احتياجك. ما هي البيانات والبنود التي تود إضافتها في هذا النموذج؟'.
+[TASK]
+- ابدأ حواراً استقصائياً لجمع المتطلبات (طبيعة العمل، الغرض من النموذج، البنود الخاصة).
+- عند الانتهاء، اطلب من الزائر الضغط على زر (إنهاء المحادثة) ليتم إرسال 'ملف المتطلبات' للأستاذ عبدالرحمن للتنفيذ والتواصل معه عبر الواتساب.`;
+
 function estimateBase64Size(content: any[]): number {
   let totalSize = 0;
   for (const item of content) {
@@ -148,7 +157,94 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, consultation_id, agent, session_id, multimodal_content } = await req.json();
+    const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name } = await req.json();
+
+    // Handle end_conversation action
+    if (action === "end_conversation") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+      
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Generate summary from conversation
+      const chatHistory = (messages || []).map((m: any) => `${m.role}: ${m.content}`).join("\n");
+      const summaryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            { role: "system", content: "لخص هذه المحادثة في 2-3 أسطر بالعربية. ركز على الطلب الرئيسي والنتيجة." },
+            { role: "user", content: chatHistory },
+          ],
+        }),
+      });
+      
+      let summary = "ملخص غير متوفر";
+      if (summaryResp.ok) {
+        const summaryData = await summaryResp.json();
+        summary = summaryData.choices?.[0]?.message?.content || summary;
+      }
+
+      const clientName = visitor_name || "زائر";
+      const agentType = agent || "career_twin";
+      const agentLabels: Record<string, string> = {
+        career_twin: "التوأم المهني",
+        legal_advisor: "المستشار العمالي",
+        cv_assistant: "مهندس السيرة الذاتية",
+        caio: "CAIO",
+        quality_scout: "كشاف الجودة",
+        template_architect: "مساعد النماذج والتصميم",
+      };
+
+      // Check if this is a premium/custom design request
+      const customDesignKeywords = ["تصميم", "نموذج مخصوص", "نموذج خاص", "تصميم خاص", "premium", "مميز"];
+      const isCustomRequest = (messages || []).some((m: any) => customDesignKeywords.some(kw => m.content?.includes(kw)));
+      const whatsappLink = clientName !== "زائر" ? `https://wa.me/?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك...`)}` : "";
+
+      // Send Telegram alert
+      const { data: tgSettings } = await supabase
+        .from("admin_settings").select("setting_key, setting_value")
+        .in("setting_key", ["telegram_bot_token", "telegram_chat_id"]);
+      
+      const botToken = tgSettings?.find((s: any) => s.setting_key === "telegram_bot_token")?.setting_value;
+      const chatId = tgSettings?.find((s: any) => s.setting_key === "telegram_chat_id")?.setting_value;
+      
+      if (botToken && chatId) {
+        const TELEGRAM_KEY = Deno.env.get("TELEGRAM_API_KEY");
+        let tgUrl: string;
+        let tgHeaders: Record<string, string>;
+        
+        if (LOVABLE_API_KEY && TELEGRAM_KEY) {
+          tgUrl = "https://connector-gateway.lovable.dev/telegram/sendMessage";
+          tgHeaders = { Authorization: `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": TELEGRAM_KEY, "Content-Type": "application/json" };
+        } else {
+          tgUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+          tgHeaders = { "Content-Type": "application/json" };
+        }
+        
+        let telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
+          `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
+          `👤 العميل: ${clientName}\n` +
+          `📝 الملخص: ${summary}`;
+        
+        if (isCustomRequest && whatsappLink) {
+          telegramMsg += `\n\n💎 <b>طلب تصميم مخصص!</b>\n📱 واتساب مباشر: ${whatsappLink}`;
+        }
+        
+        await fetch(tgUrl, {
+          method: "POST",
+          headers: tgHeaders,
+          body: JSON.stringify({ chat_id: chatId, text: telegramMsg, parse_mode: "HTML" }),
+        });
+      }
+
+      return new Response(JSON.stringify({ ok: true, summary }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages are required" }), {
@@ -190,6 +286,9 @@ serve(async (req) => {
         break;
       case "quality_scout":
         systemPromptBase = DEFAULT_QUALITY_SCOUT_PROMPT;
+        break;
+      case "template_architect":
+        systemPromptBase = DEFAULT_TEMPLATE_ARCHITECT_PROMPT;
         break;
       default:
         systemPromptBase = DEFAULT_CAREER_TWIN_PROMPT;
@@ -311,9 +410,22 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
 === نهاية اللقطة ===`;
     }
 
-    // Quality Scout: no special DB context needed (it's a feedback agent)
+    // Template Architect: inject templates list
+    let templateContext = "";
+    if (agentType === "template_architect") {
+      const { data: templates } = await supabase
+        .from("templates")
+        .select("title, description, category, type, gdrive_link")
+        .eq("is_active", true);
 
-    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext + dbSnapshot;
+      if (templates && templates.length > 0) {
+        templateContext = `\n\n=== النماذج المتوفرة في المتجر ===\n${templates.map((t: any) => `- ${t.title} (${t.category}) [${t.type === "premium" ? "مميز 💎" : "مجاني"}]${t.description ? ": " + t.description : ""}`).join("\n")}\n=== نهاية القائمة ===`;
+      } else {
+        templateContext = "\n\nلا توجد نماذج متوفرة حالياً في المتجر.";
+      }
+    }
+
+    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext + dbSnapshot + templateContext;
 
     const aiMessages: any[] = [
       { role: "system", content: systemPrompt },

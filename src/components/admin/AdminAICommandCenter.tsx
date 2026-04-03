@@ -103,6 +103,15 @@ const DEFAULT_PROMPTS: Record<string, string> = {
 - أجب بلغة المستخدم
 - كن ودوداً وغير إلحاحي
 - ركز على اكتشاف "ألم" الشركات بشكل طبيعي`,
+
+  agent_prompt_template_architect: `[ROLE] أنت خبير في هندسة النماذج الإدارية والقانونية للأستاذ عبدالرحمن باشنيني. مهمتك هي مساعدة الزوار في العثور على النموذج المناسب من المتجر، أو جمع متطلبات تصميمه إذا لم يكن موجوداً.
+[LOGIC]
+- ابحث أولاً في قاعدة بيانات النماذج (Templates Table).
+- إذا وجدته: وجه الزائر لتحميله فوراً.
+- إذا لم تجده (مثال: نموذج استئذان): لا تعتذر وترحل. بدلاً من ذلك، قل: 'هذا النموذج غير متوفر حالياً في المتجر، ولكن الأستاذ عبدالرحمن يمكنه تصميمه لك خصيصاً ليناسب احتياجك. ما هي البيانات والبنود التي تود إضافتها في هذا النموذج؟'.
+[TASK]
+- ابدأ حواراً استقصائياً لجمع المتطلبات (طبيعة العمل، الغرض من النموذج، البنود الخاصة).
+- عند الانتهاء، اطلب من الزائر الضغط على زر (إنهاء المحادثة) ليتم إرسال 'ملف المتطلبات' للأستاذ عبدالرحمن للتنفيذ والتواصل معه عبر الواتساب.`,
 };
 
 const AGENTS = [
@@ -111,6 +120,7 @@ const AGENTS = [
   { key: "cv_assistant", promptKey: "agent_prompt_cv_assistant", label: "الوكيل C: مهندس السيرة الذاتية", icon: Gift, color: "text-emerald-400" },
   { key: "caio", promptKey: "agent_prompt_caio", label: "الوكيل D: المحلل الذكي (CAIO)", icon: Brain, color: "text-purple-400" },
   { key: "quality_scout", promptKey: "agent_prompt_quality_scout", label: "الوكيل E: كشاف الجودة والنمو", icon: Star, color: "text-rose-400" },
+  { key: "template_architect", promptKey: "agent_prompt_template_architect", label: "الوكيل F: مساعد النماذج والتصميم", icon: HelpCircle, color: "text-cyan-400" },
 ];
 
 interface Props {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User, Loader2, Paperclip } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2, Paperclip, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +26,7 @@ const FloatingAIChat = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [ending, setEnding] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -169,6 +170,46 @@ const FloatingAIChat = () => {
     }
   };
 
+  const endConversation = async () => {
+    if (!sessionData || messages.length < 3) return;
+    setEnding(true);
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            action: "end_conversation",
+            messages: messages.filter((m) => m.content !== DISCLAIMER.content),
+            agent: "career_twin",
+            visitor_name: sessionData.name,
+          }),
+        }
+      );
+      const data = await resp.json();
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: lang === "ar"
+            ? `✅ تم إنهاء المحادثة وإرسال ملخصها للأستاذ عبدالرحمن. شكراً لك ${sessionData.name}!\n\n📝 **الملخص:**\n${data.summary || "تم الإرسال"}`
+            : `✅ Conversation ended and summary sent to Mr. Abdulrahman. Thank you ${sessionData.name}!\n\n📝 **Summary:**\n${data.summary || "Sent successfully"}`,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: t("عذراً، حدث خطأ أثناء إنهاء المحادثة.", "Sorry, an error occurred ending the conversation.") },
+      ]);
+    } finally {
+      setEnding(false);
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !sessionData) return;
     const userMsg: Msg = { role: "user", content: input.trim() };
@@ -245,7 +286,19 @@ const FloatingAIChat = () => {
                 </div>
               </ScrollArea>
 
-              <div className="p-3 border-t border-border">
+              <div className="p-3 border-t border-border space-y-2">
+                {messages.length >= 4 && (
+                  <Button
+                    onClick={endConversation}
+                    disabled={ending || isLoading}
+                    variant="outline"
+                    size="sm"
+                    className="w-full font-arabic text-xs gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+                  >
+                    {ending ? <Loader2 className="h-3 w-3 animate-spin" /> : <PhoneOff className="h-3 w-3" />}
+                    {t("إنهاء المحادثة", "End Conversation")}
+                  </Button>
+                )}
                 <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="flex gap-2" dir={lang === "ar" ? "rtl" : "ltr"}>
                   <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); e.target.value = ""; }} />
                   <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || uploadingFile} className="text-muted-foreground hover:text-primary shrink-0">
