@@ -111,6 +111,7 @@ const AGENTS = [
   { key: "cv_assistant", promptKey: "agent_prompt_cv_assistant", label: "الوكيل C: مهندس السيرة الذاتية", icon: Gift, color: "text-emerald-400" },
   { key: "caio", promptKey: "agent_prompt_caio", label: "الوكيل D: المحلل الذكي (CAIO)", icon: Brain, color: "text-purple-400" },
   { key: "quality_scout", promptKey: "agent_prompt_quality_scout", label: "الوكيل E: كشاف الجودة والنمو", icon: Star, color: "text-rose-400" },
+  { key: "template_architect", promptKey: "agent_prompt_template_architect", label: "الوكيل F: مساعد النماذج والتصميم", icon: HelpCircle, color: "text-cyan-400" },
 ];
 
 interface Props {
