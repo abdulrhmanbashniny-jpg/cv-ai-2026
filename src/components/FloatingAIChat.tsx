@@ -286,7 +286,19 @@ const FloatingAIChat = () => {
                 </div>
               </ScrollArea>
 
-              <div className="p-3 border-t border-border">
+              <div className="p-3 border-t border-border space-y-2">
+                {messages.length >= 4 && (
+                  <Button
+                    onClick={endConversation}
+                    disabled={ending || isLoading}
+                    variant="outline"
+                    size="sm"
+                    className="w-full font-arabic text-xs gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+                  >
+                    {ending ? <Loader2 className="h-3 w-3 animate-spin" /> : <PhoneOff className="h-3 w-3" />}
+                    {t("إنهاء المحادثة", "End Conversation")}
+                  </Button>
+                )}
                 <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="flex gap-2" dir={lang === "ar" ? "rtl" : "ltr"}>
                   <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFileUpload(file); e.target.value = ""; }} />
                   <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isLoading || uploadingFile} className="text-muted-foreground hover:text-primary shrink-0">
