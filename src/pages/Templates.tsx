@@ -63,50 +63,6 @@ const Templates = () => {
     return t.category === filter;
   });
 
-  const handleAISearch = async () => {
-    if (!aiQuery.trim()) return;
-    setAiLoading(true);
-    setAiResult("");
-    try {
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: `المستخدم يبحث عن نموذج إداري مناسب. مشكلته/سؤاله: "${aiQuery}". بناءً على النماذج المتاحة في المتجر، اقترح النموذج الأنسب وسبب الاقتراح بإيجاز. النماذج المتاحة: ${templates.map((t) => `"${t.title}" (${t.category}, ${t.type})`).join(", ")}` }],
-          agent: "career_twin",
-          session_id: "ai-matchmaker-" + Date.now(),
-        }),
-      });
-
-      const reader = resp.body!.getReader();
-      const decoder = new TextDecoder();
-      let result = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ") && line.slice(6).trim() !== "[DONE]") {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                result += content;
-                setAiResult(result);
-              }
-            } catch {}
-          }
-        }
-      }
-    } catch {
-      setAiResult(t("عذراً، حدث خطأ. حاول مرة أخرى.", "Sorry, an error occurred. Try again."));
-    }
-    setAiLoading(false);
-  };
 
   const handleDownload = (template: Template) => {
     setSelectedTemplate(template);
