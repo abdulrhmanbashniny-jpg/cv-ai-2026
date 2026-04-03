@@ -183,7 +183,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name } = await req.json();
+    const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name, visitor_phone } = await req.json();
 
     // Handle end_conversation action
     if (action === "end_conversation") {
