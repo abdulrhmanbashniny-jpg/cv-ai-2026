@@ -126,14 +126,40 @@ const DEFAULT_QUALITY_SCOUT_PROMPT = `أنت مدير نجاح العملاء ا
 - لا تكن إلحاحياً
 - ركز على اكتشاف "ألم" الشركات بشكل طبيعي`;
 
-const DEFAULT_TEMPLATE_ARCHITECT_PROMPT = `[ROLE] أنت خبير في هندسة النماذج الإدارية والقانونية للأستاذ عبدالرحمن باشنيني. مهمتك هي مساعدة الزوار في العثور على النموذج المناسب من المتجر، أو جمع متطلبات تصميمه إذا لم يكن موجوداً.
-[LOGIC]
-- ابحث أولاً في قاعدة بيانات النماذج (Templates Table).
-- إذا وجدته: وجه الزائر لتحميله فوراً.
-- إذا لم تجده (مثال: نموذج استئذان): لا تعتذر وترحل. بدلاً من ذلك، قل: 'هذا النموذج غير متوفر حالياً في المتجر، ولكن الأستاذ عبدالرحمن يمكنه تصميمه لك خصيصاً ليناسب احتياجك. ما هي البيانات والبنود التي تود إضافتها في هذا النموذج؟'.
-[TASK]
-- ابدأ حواراً استقصائياً لجمع المتطلبات (طبيعة العمل، الغرض من النموذج، البنود الخاصة).
-- عند الانتهاء، اطلب من الزائر الضغط على زر (إنهاء المحادثة) ليتم إرسال 'ملف المتطلبات' للأستاذ عبدالرحمن للتنفيذ والتواصل معه عبر الواتساب.`;
+const DEFAULT_TEMPLATE_ARCHITECT_PROMPT = `[ROLE] أنت مساعد النماذج والتصميم الرقمي للأستاذ عبدالرحمن سالم باشنيني، مدير تطوير الأعمال. أنت خبير في هندسة النماذج الإدارية والقانونية.
+
+[STEP A - الترحيب الإلزامي]
+ابدأ دائماً بإخلاء المسؤولية: "تنويه: هذا المساعد أداة استرشادية ولا يُغني عن الاستشارة المهنية المباشرة."
+ثم رحب بالمستخدم واسأله عن احتياجه.
+
+[STEP B - فحص قاعدة البيانات]
+عندما يطلب المستخدم نموذجاً، ابحث في قائمة النماذج المتوفرة المرفقة أدناه.
+- إذا وجدته: قل "نعم، هذا النموذج متوفر في مكتبتنا! يمكنك تحميله مباشرة من صفحة النماذج." واذكر اسمه ونوعه (مجاني/مميز).
+
+[STEP C - وضع الاستشاري]
+- إذا لم تجد النموذج المطلوب: قل بالضبط: "هذا النموذج غير متوفر حالياً في المكتبة الجاهزة، ولكن الأستاذ عبدالرحمن وفريقه يمكنهم تصميمه لك خصيصاً ليناسب احتياجك."
+
+[STEP D - جمع المتطلبات]
+ابدأ بطرح أسئلة استقصائية واحداً تلو الآخر:
+1. "ما هو نوع نشاط منشأتك؟"
+2. "ما هو الغرض الرئيسي من هذا النموذج؟"
+3. "ما هي أهم الخانات والحقول التي تود إضافتها؟"
+4. "هل هناك بنود قانونية معينة تود إدراجها؟"
+5. "هل تريد إضافة شعار الشركة أو أي عناصر بصرية خاصة؟"
+
+[STEP E - الإغلاق]
+بعد جمع المتطلبات الكافية، قل: "رائع، لقد قمت بجمع كافة التفاصيل المطلوبة. سأقوم بإرسال طلبك الآن للأستاذ عبدالرحمن ليدرسه ويتواصل معك عبر الواتساب."
+
+[STEP F - الرقم المرجعي]
+أصدر رقم مرجع بتنسيق: [ARB-2026-XXXX] (حيث XXXX أرقام عشوائية).
+ثم قل: "رقمك المرجعي هو [ARB-2026-XXXX]. يرجى الضغط على زر (إنهاء المحادثة وإرسال التقرير) الآن لإتمام إرسال طلبك."
+
+[تعليمات عامة]
+- أجب بلغة المستخدم
+- كن مهنياً ومحترفاً
+- لا تختلق نماذج غير موجودة في القائمة
+- اسأل سؤالاً واحداً في كل مرة عند جمع المتطلبات`;
+
 
 function estimateBase64Size(content: any[]): number {
   let totalSize = 0;
@@ -157,7 +183,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name } = await req.json();
+    const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name, visitor_phone } = await req.json();
 
     // Handle end_conversation action
     if (action === "end_conversation") {
@@ -168,15 +194,29 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Generate summary from conversation
+      // Generate summary/report from conversation
       const chatHistory = (messages || []).map((m: any) => `${m.role}: ${m.content}`).join("\n");
+      const agentType = agent || "career_twin";
+      const isTemplateArchitect = agentType === "template_architect";
+      
+      const summarySystemPrompt = isTemplateArchitect
+        ? `أنت كاتب تقارير احترافي. قم بكتابة "تقرير متطلبات تصميم نموذج" بناءً على المحادثة التالية. التقرير يجب أن يتضمن:
+1. نوع النموذج المطلوب
+2. طبيعة نشاط المنشأة
+3. الغرض من النموذج
+4. الحقول والبنود المطلوبة
+5. أي متطلبات خاصة
+6. الرقم المرجعي إن وُجد
+اكتب التقرير بشكل مهني ومختصر بالعربية.`
+        : "لخص هذه المحادثة في 2-3 أسطر بالعربية. ركز على الطلب الرئيسي والنتيجة.";
+      
       const summaryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-lite",
           messages: [
-            { role: "system", content: "لخص هذه المحادثة في 2-3 أسطر بالعربية. ركز على الطلب الرئيسي والنتيجة." },
+            { role: "system", content: summarySystemPrompt },
             { role: "user", content: chatHistory },
           ],
         }),
@@ -189,7 +229,7 @@ serve(async (req) => {
       }
 
       const clientName = visitor_name || "زائر";
-      const agentType = agent || "career_twin";
+      const clientPhone = visitor_phone || "";
       const agentLabels: Record<string, string> = {
         career_twin: "التوأم المهني",
         legal_advisor: "المستشار العمالي",
@@ -199,10 +239,9 @@ serve(async (req) => {
         template_architect: "مساعد النماذج والتصميم",
       };
 
-      // Check if this is a premium/custom design request
-      const customDesignKeywords = ["تصميم", "نموذج مخصوص", "نموذج خاص", "تصميم خاص", "premium", "مميز"];
-      const isCustomRequest = (messages || []).some((m: any) => customDesignKeywords.some(kw => m.content?.includes(kw)));
-      const whatsappLink = clientName !== "زائر" ? `https://wa.me/?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك...`)}` : "";
+      // Build WhatsApp link with phone if available
+      const cleanPhone = clientPhone.replace(/[^0-9+]/g, "");
+      const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("+") ? cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك...`)}` : "";
 
       // Send Telegram alert
       const { data: tgSettings } = await supabase
@@ -225,13 +264,24 @@ serve(async (req) => {
           tgHeaders = { "Content-Type": "application/json" };
         }
         
-        let telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
-          `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
-          `👤 العميل: ${clientName}\n` +
-          `📝 الملخص: ${summary}`;
+        let telegramMsg = "";
         
-        if (isCustomRequest && whatsappLink) {
-          telegramMsg += `\n\n💎 <b>طلب تصميم مخصص!</b>\n📱 واتساب مباشر: ${whatsappLink}`;
+        if (isTemplateArchitect) {
+          telegramMsg = `📐 <b>تقرير متطلبات تصميم نموذج جديد!</b>\n\n` +
+            `👤 العميل: ${clientName}\n` +
+            (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
+            `\n📋 <b>التقرير:</b>\n${summary}` +
+            (whatsappLink ? `\n\n📱 <b>واتساب مباشر:</b> ${whatsappLink}` : "");
+        } else {
+          telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
+            `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
+            `👤 العميل: ${clientName}\n` +
+            (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
+            `📝 الملخص: ${summary}`;
+          
+          if (whatsappLink) {
+            telegramMsg += `\n\n📱 واتساب مباشر: ${whatsappLink}`;
+          }
         }
         
         await fetch(tgUrl, {

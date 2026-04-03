@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Download, Lock, Sparkles, FileText, Scale, Briefcase, Filter } from "lucide-react";
+import { Download, Lock, FileText, Scale, Briefcase, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import LeadCaptureModal from "@/components/LeadCaptureModal";
 import ThankYouModal from "@/components/ThankYouModal";
-import { Loader2, Bot } from "lucide-react";
+import TemplateArchitectChat from "@/components/TemplateArchitectChat";
+import { Loader2 } from "lucide-react";
 
 type Template = {
   id: string;
@@ -35,9 +35,6 @@ const Templates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
-  const [aiQuery, setAiQuery] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [thankYouOpen, setThankYouOpen] = useState(false);
@@ -66,50 +63,6 @@ const Templates = () => {
     return t.category === filter;
   });
 
-  const handleAISearch = async () => {
-    if (!aiQuery.trim()) return;
-    setAiLoading(true);
-    setAiResult("");
-    try {
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: `المستخدم يبحث عن نموذج إداري مناسب. مشكلته/سؤاله: "${aiQuery}". بناءً على النماذج المتاحة في المتجر، اقترح النموذج الأنسب وسبب الاقتراح بإيجاز. النماذج المتاحة: ${templates.map((t) => `"${t.title}" (${t.category}, ${t.type})`).join(", ")}` }],
-          agent: "career_twin",
-          session_id: "ai-matchmaker-" + Date.now(),
-        }),
-      });
-
-      const reader = resp.body!.getReader();
-      const decoder = new TextDecoder();
-      let result = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ") && line.slice(6).trim() !== "[DONE]") {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                result += content;
-                setAiResult(result);
-              }
-            } catch {}
-          }
-        }
-      }
-    } catch {
-      setAiResult(t("عذراً، حدث خطأ. حاول مرة أخرى.", "Sorry, an error occurred. Try again."));
-    }
-    setAiLoading(false);
-  };
 
   const handleDownload = (template: Template) => {
     setSelectedTemplate(template);
@@ -151,32 +104,8 @@ const Templates = () => {
             )}
           </p>
 
-          {/* AI Matchmaker */}
-          <div className="max-w-xl mx-auto bg-card border border-border rounded-2xl p-4 mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <span className="font-arabic font-semibold text-sm text-primary">
-                {t("اسأل الذكاء الاصطناعي عن النموذج المناسب", "Ask AI for the right template")}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleAISearch()}
-                placeholder={t("مثال: أحتاج نموذج إنذار موظف...", "Example: I need an employee warning template...")}
-                className="font-arabic text-sm"
-              />
-              <Button onClick={handleAISearch} disabled={aiLoading} className="bg-primary text-primary-foreground shrink-0">
-                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}
-              </Button>
-            </div>
-            {aiResult && (
-              <div className="mt-3 p-3 bg-secondary rounded-lg text-sm font-arabic text-foreground text-right leading-relaxed">
-                {aiResult}
-              </div>
-            )}
-          </div>
+          {/* AI Template Architect Chat */}
+          <TemplateArchitectChat />
         </section>
 
         {/* Filters */}
