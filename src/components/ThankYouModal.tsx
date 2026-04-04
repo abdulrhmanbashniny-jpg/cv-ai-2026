@@ -38,6 +38,13 @@ const ThankYouModal = ({ open, onClose, templateTitle, downloadUrl, refId }: Tha
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {refId && (
+              <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-center">
+                <p className="text-xs text-muted-foreground font-arabic mb-1">{t("الرقم المرجعي", "Reference ID")}</p>
+                <p className="text-lg font-bold text-primary font-mono">{refId}</p>
+                <p className="text-[10px] text-muted-foreground font-arabic mt-1">{t("احتفظ بهذا الرقم للمتابعة", "Keep this ID for follow-up")}</p>
+              </div>
+            )}
             {isPremium ? (
               <p className="text-sm text-muted-foreground font-arabic">
                 {t(
