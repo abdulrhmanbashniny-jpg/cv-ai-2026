@@ -10,6 +10,7 @@ interface ThankYouModalProps {
   onClose: () => void;
   templateTitle: string;
   downloadUrl?: string;
+  refId?: string;
 }
 
 const ThankYouModal = ({ open, onClose, templateTitle, downloadUrl }: ThankYouModalProps) => {
