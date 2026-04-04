@@ -311,6 +311,7 @@ serve(async (req) => {
         if (isTemplateArchitect) {
           telegramMsg = `📐 <b>تقرير متطلبات تصميم نموذج جديد!</b>\n\n` +
             `👤 العميل: ${clientName}\n` +
+            (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
             (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
             `\n📋 <b>التقرير:</b>\n${summary}` +
             (whatsappLink ? `\n\n📱 <b>واتساب مباشر:</b> ${whatsappLink}` : "");
@@ -318,6 +319,7 @@ serve(async (req) => {
           telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
             `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
             `👤 العميل: ${clientName}\n` +
+            (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
             (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
             `📝 الملخص: ${summary}`;
           
