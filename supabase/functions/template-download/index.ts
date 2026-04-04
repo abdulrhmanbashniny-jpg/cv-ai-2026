@@ -96,36 +96,55 @@ serve(async (req) => {
       await sendTelegram(`🚨 <b>صيد ثمين!</b>\n\n👤 ${name} - ${role}\n📞 ${phone}\n📧 ${email}\n📥 قام بتحميل ${leadDownloadsCount} نماذج.\n\n✅ يُنصح بالتواصل معه!`);
     }
 
+    // Generate ref ID
+    const refNum = Math.floor(1000 + Math.random() * 9000);
+    const refId = `ARB-2026-${refNum}`;
+
+    // Send to Google Sheet
+    const gasUrl = Deno.env.get("GOOGLE_APPS_SCRIPT_URL");
+    if (gasUrl) {
+      try {
+        await fetch(gasUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ref: refId, name, phone, city: "غير محدد", dept: template.type === "premium" ? "طلب نموذج مميز" : "تحميل نموذج مجاني" }),
+        });
+      } catch (e) { console.error("Google Apps Script error:", e); }
+    }
+
     // For FREE templates
     if (template.type === "free") {
-      // Send download notification
-      await sendTelegram(`📥 <b>تحميل نموذج مجاني</b>\n\n👤 ${name}\n📞 ${phone}\n📧 ${email}\n📄 ${template.title}`);
+      await sendTelegram(`📥 <b>تحميل نموذج مجاني</b>\n\n🔖 المرجع: <code>${refId}</code>\n👤 ${name}\n📞 ${phone}\n📧 ${email}\n📄 ${template.title}`);
 
       return new Response(JSON.stringify({
-        ok: true, type: "free", download_url: template.gdrive_link, template_title: template.title,
+        ok: true, type: "free", download_url: template.gdrive_link, template_title: template.title, ref_id: refId,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // For PREMIUM templates
-    // 1. Create premium order
     const leadId = existingLead?.id || null;
-    await supabase.from("premium_orders").insert({
+    const { error: orderError } = await supabase.from("premium_orders").insert({
       template_id, lead_id: leadId, template_name: template.title,
       customer_name: name, customer_phone: phone, customer_email: email,
     });
+    if (orderError) {
+      console.error("CRITICAL: premium_orders insert failed:", orderError);
+      return new Response(JSON.stringify({ error: "Failed to save order" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // 2. Send Telegram alert with WhatsApp action link
     const whatsappDeliveryMsg = encodeURIComponent(
-      `أهلاً بك أستاذ ${name}، معك عبدالرحمن بشنيني صاحب منصة الخدمات الإدارية للموارد البشرية. بخصوص طلبك لنموذج "${template.title}"، يسعدني تزويدك بالتفاصيل...`
+      `أهلاً بك أستاذ ${name}، معك عبدالرحمن بشنيني صاحب منصة الخدمات الإدارية للموارد البشرية. بخصوص طلبك لنموذج "${template.title}" (مرجع: ${refId})، يسعدني تزويدك بالتفاصيل...`
     );
     const whatsappLink = `https://wa.me/${phone}?text=${whatsappDeliveryMsg}`;
 
     await sendTelegram(
-      `📦 <b>طلب نموذج مميز جديد!</b>\n\n👤 الاسم: ${name}\n📞 الجوال: ${phone}\n📧 البريد: ${email}\n📄 المنتج: ${template.title}\n\n<a href="${whatsappLink}">💬 فتح واتساب للتواصل</a>`
+      `📦 <b>طلب نموذج مميز جديد!</b>\n\n🔖 المرجع: <code>${refId}</code>\n👤 الاسم: ${name}\n📞 الجوال: ${phone}\n📧 البريد: ${email}\n📄 المنتج: ${template.title}\n\n<a href="${whatsappLink}">💬 فتح واتساب للتواصل</a>`
     );
 
     return new Response(JSON.stringify({
-      ok: true, type: "premium", template_title: template.title,
+      ok: true, type: "premium", template_title: template.title, ref_id: refId,
       message: "تم رفع طلبك بنجاح، سيقوم الأستاذ عبدالرحمن بالتواصل معك لتسليم الملفات",
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
