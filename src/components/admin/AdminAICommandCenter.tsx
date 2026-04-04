@@ -326,12 +326,12 @@ const AgentLogs = ({ chatLogs, consultations, agentKey, onRefresh }: { chatLogs:
   const [saving, setSaving] = useState(false);
 
   // Auto-refresh logs every 10 seconds for real-time feel
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       onRefresh();
     }, 10000);
     return () => clearInterval(interval);
-  });
+  }, [onRefresh]);
 
   const grouped = chatLogs.reduce((acc: Record<string, any[]>, log: any) => {
     const key = log.consultation_id || "no_session";
