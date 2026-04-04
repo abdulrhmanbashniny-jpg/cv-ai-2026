@@ -38,7 +38,7 @@ const Templates = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [thankYouOpen, setThankYouOpen] = useState(false);
-  const [thankYouData, setThankYouData] = useState<{ title: string; url?: string }>({ title: "" });
+  const [thankYouData, setThankYouData] = useState<{ title: string; url?: string; refId?: string }>({ title: "" });
 
   useEffect(() => {
     loadTemplates();
