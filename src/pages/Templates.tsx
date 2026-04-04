@@ -71,12 +71,11 @@ const Templates = () => {
 
   const handleLeadSuccess = (result: any) => {
     if (result.type === "free" && result.download_url) {
-      setThankYouData({ title: result.template_title, url: result.download_url });
+      setThankYouData({ title: result.template_title, url: result.download_url, refId: result.ref_id });
       setThankYouOpen(true);
       loadTemplates();
     } else if (result.type === "premium") {
-      // Show success message instead of WhatsApp redirect
-      setThankYouData({ title: result.template_title });
+      setThankYouData({ title: result.template_title, refId: result.ref_id });
       setThankYouOpen(true);
       loadTemplates();
     }
