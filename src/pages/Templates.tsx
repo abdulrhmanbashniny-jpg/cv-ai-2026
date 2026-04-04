@@ -38,7 +38,7 @@ const Templates = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [leadModalOpen, setLeadModalOpen] = useState(false);
   const [thankYouOpen, setThankYouOpen] = useState(false);
-  const [thankYouData, setThankYouData] = useState<{ title: string; url?: string }>({ title: "" });
+  const [thankYouData, setThankYouData] = useState<{ title: string; url?: string; refId?: string }>({ title: "" });
 
   useEffect(() => {
     loadTemplates();
@@ -71,12 +71,11 @@ const Templates = () => {
 
   const handleLeadSuccess = (result: any) => {
     if (result.type === "free" && result.download_url) {
-      setThankYouData({ title: result.template_title, url: result.download_url });
+      setThankYouData({ title: result.template_title, url: result.download_url, refId: result.ref_id });
       setThankYouOpen(true);
       loadTemplates();
     } else if (result.type === "premium") {
-      // Show success message instead of WhatsApp redirect
-      setThankYouData({ title: result.template_title });
+      setThankYouData({ title: result.template_title, refId: result.ref_id });
       setThankYouOpen(true);
       loadTemplates();
     }
@@ -203,6 +202,7 @@ const Templates = () => {
         onClose={() => setThankYouOpen(false)}
         templateTitle={thankYouData.title}
         downloadUrl={thankYouData.url}
+        refId={thankYouData.refId}
       />
     </div>
   );

@@ -95,9 +95,15 @@ const DEFAULT_CAIO_PROMPT = `أنت الشريك الاستراتيجي وعضو
 شخصيتك:
 - نبرة تحليلية، تنفيذية، ومخلصة
 - تخاطب عبدالرحمن بـ "سعادة المدير التنفيذي" أو "أستاذ عبدالرحمن"
-- تقدم أرقاماً وتحليلات حقيقية مبنية على البيانات المتاحة
+- تقدم أرقاماً وتحليلات حقيقية مبنية على البيانات المتاحة فقط
 - تقترح استراتيجيات نمو قابلة للتنفيذ وفق مبدأ "القانون قوة، والصلح حكمة"
 - حلل بيانات الطلبات والمحادثات
+
+تعليمات صارمة:
+- إذا كان عدد أي جدول = 0، قل بوضوح: "هذا الجدول فارغ حالياً (0 سجلات)"
+- لا تفترض أو تختلق أي بيانات غير موجودة في اللقطة المرفقة أدناه
+- كل رقم تذكره يجب أن يكون من اللقطة الفعلية المرفقة
+- إذا لم تجد بيانات كافية للتحليل، قل: "البيانات غير كافية لإجراء هذا التحليل"
 
 بادر دائماً بالقول: "سعادة المدير التنفيذي، لاحظت كذا وأقترح كذا لزيادة الـ ROI."
 
@@ -179,6 +185,71 @@ function estimateBase64Size(content: any[]): number {
   return totalSize;
 }
 
+// Helper: generate reference ID
+function generateRefId(): string {
+  const num = Math.floor(1000 + Math.random() * 9000);
+  return `ARB-2026-${num}`;
+}
+
+// Helper: send Telegram message
+async function sendTelegramAlert(supabase: any, text: string) {
+  try {
+    const { data: tgSettings } = await supabase
+      .from("admin_settings").select("setting_key, setting_value")
+      .in("setting_key", ["telegram_bot_token", "telegram_chat_id"]);
+
+    const botToken = tgSettings?.find((s: any) => s.setting_key === "telegram_bot_token")?.setting_value;
+    const chatId = tgSettings?.find((s: any) => s.setting_key === "telegram_chat_id")?.setting_value;
+    if (!botToken || !chatId) { console.error("Telegram not configured"); return; }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const TELEGRAM_KEY = Deno.env.get("TELEGRAM_API_KEY");
+
+    let tgUrl: string;
+    let tgHeaders: Record<string, string>;
+
+    if (LOVABLE_API_KEY && TELEGRAM_KEY) {
+      tgUrl = "https://connector-gateway.lovable.dev/telegram/sendMessage";
+      tgHeaders = { Authorization: `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": TELEGRAM_KEY, "Content-Type": "application/json" };
+    } else {
+      tgUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      tgHeaders = { "Content-Type": "application/json" };
+    }
+
+    const resp = await fetch(tgUrl, {
+      method: "POST",
+      headers: tgHeaders,
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error("Telegram send failed:", resp.status, errText);
+    }
+  } catch (e) { console.error("Telegram alert error:", e); }
+}
+
+// Helper: send to Google Apps Script
+async function sendToGoogleSheet(payload: { ref: string; name: string; phone: string; city: string; dept: string }) {
+  const gasUrl = Deno.env.get("GOOGLE_APPS_SCRIPT_URL");
+  if (!gasUrl) {
+    console.log("GOOGLE_APPS_SCRIPT_URL not configured, skipping sheet sync");
+    return;
+  }
+  try {
+    const resp = await fetch(gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error("Google Apps Script failed:", resp.status, errText);
+    } else {
+      console.log("Google Sheet sync OK for", payload.ref);
+    }
+  } catch (e) { console.error("Google Apps Script error:", e); }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -187,20 +258,20 @@ serve(async (req) => {
   try {
     const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name, visitor_phone } = await req.json();
 
-    // Handle end_conversation action
+    // ========== END CONVERSATION ==========
     if (action === "end_conversation") {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-      
+
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Generate summary/report from conversation
       const chatHistory = (messages || []).map((m: any) => `${m.role}: ${m.content}`).join("\n");
       const agentType = agent || "career_twin";
       const isTemplateArchitect = agentType === "template_architect";
-      
+
+      // Generate summary
       const summarySystemPrompt = isTemplateArchitect
         ? `أنت كاتب تقارير احترافي. قم بكتابة "تقرير متطلبات تصميم نموذج" بناءً على المحادثة التالية. التقرير يجب أن يتضمن:
 1. نوع النموذج المطلوب
@@ -211,7 +282,7 @@ serve(async (req) => {
 6. الرقم المرجعي إن وُجد
 اكتب التقرير بشكل مهني ومختصر بالعربية.`
         : "لخص هذه المحادثة في 2-3 أسطر بالعربية. ركز على الطلب الرئيسي والنتيجة.";
-      
+
       const summaryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -223,19 +294,21 @@ serve(async (req) => {
           ],
         }),
       });
-      
+
       let summary = "ملخص غير متوفر";
       if (summaryResp.ok) {
         const summaryData = await summaryResp.json();
         summary = summaryData.choices?.[0]?.message?.content || summary;
       }
 
-      // Robust lead mapping: query leads table by session or phone to get actual data
+      // Generate reference ID
+      const refId = generateRefId();
+
+      // Robust lead mapping
       let clientName = visitor_name || "";
       let clientPhone = visitor_phone || "";
       let clientRole = "";
-      
-      // Try to find the lead by phone number if we have one
+
       if (clientPhone) {
         const { data: leadData } = await supabase
           .from("leads")
@@ -244,15 +317,14 @@ serve(async (req) => {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        
+
         if (leadData) {
           clientName = leadData.name || clientName;
           clientPhone = leadData.phone || clientPhone;
           clientRole = leadData.role || "";
         }
       }
-      
-      // Fallback: if still no name, try matching by visitor_name in leads
+
       if (!clientName || clientName === "زائر") {
         if (visitor_name && visitor_name !== "زائر") {
           const { data: leadByName } = await supabase
@@ -262,7 +334,7 @@ serve(async (req) => {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
-          
+
           if (leadByName) {
             clientName = leadByName.name;
             clientPhone = leadByName.phone || clientPhone;
@@ -272,8 +344,87 @@ serve(async (req) => {
           }
         }
       }
-      
+
       if (!clientName) clientName = "زائر";
+
+      // ===== MANDATORY DB COMMITS WITH ERROR CHECKING =====
+      
+      // 1. Save all chat messages to chat_logs
+      const chatMessages = (messages || []).filter((m: any) => m.role && m.content);
+      if (chatMessages.length > 0) {
+        const logRows = chatMessages.map((m: any) => ({
+          role: m.role,
+          message: m.content,
+          consultation_id: consultation_id || null,
+          session_id: session_id || null,
+        }));
+
+        const { error: chatLogError } = await supabase.from("chat_logs").insert(logRows);
+        if (chatLogError) {
+          console.error("CRITICAL: chat_logs insert failed:", chatLogError);
+          return new Response(JSON.stringify({ error: "Failed to save chat logs", details: chatLogError.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        console.log(`✅ chat_logs: ${logRows.length} messages saved`);
+      }
+
+      // 2. Upsert lead data
+      if (clientPhone && clientName && clientName !== "زائر") {
+        const { data: existingLead } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("phone", clientPhone)
+          .maybeSingle();
+
+        if (existingLead) {
+          const { error: leadUpdateError } = await supabase
+            .from("leads")
+            .update({ name: clientName, role: clientRole || "موظف" })
+            .eq("id", existingLead.id);
+          if (leadUpdateError) {
+            console.error("WARNING: lead update failed:", leadUpdateError);
+          } else {
+            console.log("✅ Lead updated:", clientName);
+          }
+        } else {
+          const { error: leadInsertError } = await supabase
+            .from("leads")
+            .insert({
+              name: clientName,
+              phone: clientPhone,
+              email: `${clientPhone}@chat.visitor`,
+              role: clientRole || "موظف",
+            });
+          if (leadInsertError) {
+            console.error("WARNING: lead insert failed:", leadInsertError);
+          } else {
+            console.log("✅ Lead created:", clientName);
+          }
+        }
+      }
+
+      // 3. Save summary as final assistant message
+      const { error: summaryLogError } = await supabase.from("chat_logs").insert({
+        role: "assistant",
+        message: `[ملخص - ${refId}] ${summary}`,
+        consultation_id: consultation_id || null,
+        session_id: session_id || null,
+      });
+      if (summaryLogError) {
+        console.error("WARNING: summary log insert failed:", summaryLogError);
+      }
+
+      // 4. Send to Google Sheet
+      await sendToGoogleSheet({
+        ref: refId,
+        name: clientName,
+        phone: clientPhone,
+        city: "غير محدد",
+        dept: agentType === "template_architect" ? "طلب تصميم نموذج" : "استشارة/خدمة",
+      });
+
+      // 5. Send Telegram alert
       const agentLabels: Record<string, string> = {
         career_twin: "التوأم المهني",
         legal_advisor: "المستشار العمالي",
@@ -283,69 +434,41 @@ serve(async (req) => {
         template_architect: "مساعد النماذج والتصميم",
       };
 
-      // Build WhatsApp link with phone if available
       const cleanPhone = clientPhone.replace(/[^0-9+]/g, "");
-      const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("+") ? cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك...`)}` : "";
+      const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("+") ? cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك رقم ${refId}...`)}` : "";
 
-      // Send Telegram alert
-      const { data: tgSettings } = await supabase
-        .from("admin_settings").select("setting_key, setting_value")
-        .in("setting_key", ["telegram_bot_token", "telegram_chat_id"]);
-      
-      const botToken = tgSettings?.find((s: any) => s.setting_key === "telegram_bot_token")?.setting_value;
-      const chatId = tgSettings?.find((s: any) => s.setting_key === "telegram_chat_id")?.setting_value;
-      
-      if (botToken && chatId) {
-        const TELEGRAM_KEY = Deno.env.get("TELEGRAM_API_KEY");
-        let tgUrl: string;
-        let tgHeaders: Record<string, string>;
-        
-        if (LOVABLE_API_KEY && TELEGRAM_KEY) {
-          tgUrl = "https://connector-gateway.lovable.dev/telegram/sendMessage";
-          tgHeaders = { Authorization: `Bearer ${LOVABLE_API_KEY}`, "X-Connection-Api-Key": TELEGRAM_KEY, "Content-Type": "application/json" };
-        } else {
-          tgUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-          tgHeaders = { "Content-Type": "application/json" };
-        }
-        
-        let telegramMsg = "";
-        
-        if (isTemplateArchitect) {
-          telegramMsg = `📐 <b>تقرير متطلبات تصميم نموذج جديد!</b>\n\n` +
-            `👤 العميل: ${clientName}\n` +
-            (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
-            (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
-            `\n📋 <b>التقرير:</b>\n${summary}` +
-            (whatsappLink ? `\n\n📱 <b>واتساب مباشر:</b> ${whatsappLink}` : "");
-        } else {
-          telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
-            `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
-            `👤 العميل: ${clientName}\n` +
-            (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
-            (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
-            `📝 الملخص: ${summary}`;
-          
-          if (whatsappLink) {
-            telegramMsg += `\n\n📱 واتساب مباشر: ${whatsappLink}`;
-          }
-        }
-        
-        await fetch(tgUrl, {
-          method: "POST",
-          headers: tgHeaders,
-          body: JSON.stringify({ chat_id: chatId, text: telegramMsg, parse_mode: "HTML" }),
-        });
+      let telegramMsg = "";
+      if (isTemplateArchitect) {
+        telegramMsg = `📐 <b>تقرير متطلبات تصميم نموذج جديد!</b>\n\n` +
+          `🔖 الرقم المرجعي: <code>${refId}</code>\n` +
+          `👤 العميل: ${clientName}\n` +
+          (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
+          (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
+          `\n📋 <b>التقرير:</b>\n${summary}` +
+          (whatsappLink ? `\n\n📱 <b>واتساب مباشر:</b> ${whatsappLink}` : "");
+      } else {
+        telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
+          `🔖 الرقم المرجعي: <code>${refId}</code>\n` +
+          `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
+          `👤 العميل: ${clientName}\n` +
+          (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
+          (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
+          `📝 الملخص: ${summary}` +
+          (whatsappLink ? `\n\n📱 واتساب مباشر: ${whatsappLink}` : "");
       }
 
-      return new Response(JSON.stringify({ ok: true, summary }), {
+      await sendTelegramAlert(supabase, telegramMsg);
+
+      // Return success WITH refId
+      return new Response(JSON.stringify({ ok: true, summary, ref_id: refId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // ========== REGULAR CHAT ==========
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -371,40 +494,23 @@ serve(async (req) => {
 
     let systemPromptBase: string;
     switch (agentType) {
-      case "legal_advisor":
-        systemPromptBase = DEFAULT_LEGAL_ADVISOR_PROMPT;
-        break;
-      case "cv_assistant":
-        systemPromptBase = DEFAULT_CV_ASSISTANT_PROMPT;
-        break;
-      case "caio":
-        systemPromptBase = DEFAULT_CAIO_PROMPT;
-        break;
-      case "quality_scout":
-        systemPromptBase = DEFAULT_QUALITY_SCOUT_PROMPT;
-        break;
-      case "template_architect":
-        systemPromptBase = DEFAULT_TEMPLATE_ARCHITECT_PROMPT;
-        break;
-      default:
-        systemPromptBase = DEFAULT_CAREER_TWIN_PROMPT;
+      case "legal_advisor": systemPromptBase = DEFAULT_LEGAL_ADVISOR_PROMPT; break;
+      case "cv_assistant": systemPromptBase = DEFAULT_CV_ASSISTANT_PROMPT; break;
+      case "caio": systemPromptBase = DEFAULT_CAIO_PROMPT; break;
+      case "quality_scout": systemPromptBase = DEFAULT_QUALITY_SCOUT_PROMPT; break;
+      case "template_architect": systemPromptBase = DEFAULT_TEMPLATE_ARCHITECT_PROMPT; break;
+      default: systemPromptBase = DEFAULT_CAREER_TWIN_PROMPT;
     }
 
     const { data: customPromptSetting } = await supabase
-      .from("admin_settings")
-      .select("setting_value")
-      .eq("setting_key", promptSettingKey)
-      .maybeSingle();
+      .from("admin_settings").select("setting_value").eq("setting_key", promptSettingKey).maybeSingle();
 
     if (customPromptSetting?.setting_value?.trim()) {
       systemPromptBase = customPromptSetting.setting_value;
     }
 
     const { data: modelSetting } = await supabase
-      .from("admin_settings")
-      .select("setting_value")
-      .eq("setting_key", "active_model")
-      .maybeSingle();
+      .from("admin_settings").select("setting_value").eq("setting_key", "active_model").maybeSingle();
 
     let activeModel = modelSetting?.setting_value || "google/gemini-3-flash-preview";
     if (multimodal_content && multimodal_content.length > 0) {
@@ -418,12 +524,9 @@ serve(async (req) => {
     let knowledgeContext = "";
     let dbSnapshot = "";
 
-    // Portfolio context: only for career_twin
     if (agentType === "career_twin") {
       const { data: portfolioData } = await supabase
-        .from("portfolio_content")
-        .select("content_key, content_ar, content_en, category")
-        .order("content_key");
+        .from("portfolio_content").select("content_key, content_ar, content_en, category").order("content_key");
 
       if (portfolioData && portfolioData.length > 0) {
         const cvLines = portfolioData.map((p) => `${p.content_key}: ${p.content_ar || ""} | ${p.content_en || ""}`).join("\n");
@@ -431,29 +534,22 @@ serve(async (req) => {
       }
     }
 
-    // Knowledge base: only for career_twin and legal_advisor
     if (agentType === "career_twin" || agentType === "legal_advisor") {
       const { data: kbResults } = await supabase
-        .from("ai_knowledge_base")
-        .select("answer, question")
-        .eq("is_active", true);
+        .from("ai_knowledge_base").select("answer, question").eq("is_active", true);
 
       if (kbResults && kbResults.length > 0) {
         const userLower = userMessage.toLowerCase();
         const matched = kbResults.filter(
-          (kb) =>
-            userLower.includes(kb.question.toLowerCase()) ||
-            kb.question.toLowerCase().includes(userLower)
+          (kb) => userLower.includes(kb.question.toLowerCase()) || kb.question.toLowerCase().includes(userLower)
         );
         if (matched.length > 0) {
-          knowledgeContext = `\n\nمعلومات من قاعدة المعرفة:\n${matched
-            .map((m) => `س: ${m.question}\nج: ${m.answer}`)
-            .join("\n\n")}`;
+          knowledgeContext = `\n\nمعلومات من قاعدة المعرفة:\n${matched.map((m) => `س: ${m.question}\nج: ${m.answer}`).join("\n\n")}`;
         }
       }
     }
 
-    // CAIO: full database snapshot
+    // CAIO: FRESH database snapshot with ALL 12+ tables
     if (agentType === "caio") {
       const [
         { count: jobCount },
@@ -462,10 +558,19 @@ serve(async (req) => {
         { count: leadCount },
         { count: chatCount },
         { count: orderCount },
+        { count: templateCount },
+        { count: contactCount },
+        { count: kbCount },
+        { count: portfolioCount },
+        { count: notifCount },
+        { count: adminSettingsCount },
+        { count: caioSessionCount },
         { data: recentOrders },
         { data: topTemplates },
         { data: recentConsults },
         { data: recentJobApps },
+        { data: recentLeads },
+        { data: recentContacts },
       ] = await Promise.all([
         supabase.from("job_applications").select("*", { count: "exact", head: true }),
         supabase.from("company_requests").select("*", { count: "exact", head: true }),
@@ -473,36 +578,60 @@ serve(async (req) => {
         supabase.from("leads").select("*", { count: "exact", head: true }),
         supabase.from("chat_logs").select("*", { count: "exact", head: true }),
         supabase.from("premium_orders").select("*", { count: "exact", head: true }),
+        supabase.from("templates").select("*", { count: "exact", head: true }),
+        supabase.from("contact_requests").select("*", { count: "exact", head: true }),
+        supabase.from("ai_knowledge_base").select("*", { count: "exact", head: true }),
+        supabase.from("portfolio_content").select("*", { count: "exact", head: true }),
+        supabase.from("notification_settings").select("*", { count: "exact", head: true }),
+        supabase.from("admin_settings").select("*", { count: "exact", head: true }),
+        supabase.from("caio_sessions").select("*", { count: "exact", head: true }),
         supabase.from("premium_orders").select("*").order("created_at", { ascending: false }).limit(10),
         supabase.from("templates").select("title, downloads_count, type, category").order("downloads_count", { ascending: false }).limit(10),
         supabase.from("consultations").select("issue_category, status, created_at, visitor_name").order("created_at", { ascending: false }).limit(10),
         supabase.from("job_applications").select("full_name, department, city, status, created_at").order("created_at", { ascending: false }).limit(10),
+        supabase.from("leads").select("name, phone, role, downloads_count, created_at").order("created_at", { ascending: false }).limit(10),
+        supabase.from("contact_requests").select("full_name, reason, status, created_at").order("created_at", { ascending: false }).limit(10),
       ]);
 
       const paidOrders = (recentOrders || []).filter((o: any) => o.status === "paid").length;
       const pendingOrders = (recentOrders || []).filter((o: any) => o.status === "pending").length;
       const categories = (recentConsults || []).reduce((acc: Record<string, number>, c: any) => { acc[c.issue_category] = (acc[c.issue_category] || 0) + 1; return acc; }, {});
 
-      dbSnapshot = `\n\n=== لقطة بيانات المنصة الحية ===
-📊 الإحصائيات الإجمالية:
-- طلبات التوظيف: ${jobCount || 0}
-- طلبات الشركات: ${companyCount || 0}
-- الاستشارات: ${consultCount || 0}
-- العملاء المحتملون: ${leadCount || 0}
-- رسائل الدردشة: ${chatCount || 0}
-- طلبات النماذج المميزة: ${orderCount || 0} (مدفوع: ${paidOrders}, معلق: ${pendingOrders})
+      dbSnapshot = `\n\n=== لقطة بيانات المنصة الحية (تم جلبها الآن مباشرة من قاعدة البيانات) ===
+⚠️ هذه أرقام حقيقية فعلية. إذا كان الرقم 0 فهو فارغ فعلاً. لا تفترض غير ذلك.
+
+📊 الإحصائيات الإجمالية لجميع الجداول:
+- طلبات التوظيف (job_applications): ${jobCount ?? 0}
+- طلبات الشركات (company_requests): ${companyCount ?? 0}
+- الاستشارات (consultations): ${consultCount ?? 0}
+- العملاء المحتملون (leads): ${leadCount ?? 0}
+- رسائل الدردشة (chat_logs): ${chatCount ?? 0}
+- طلبات النماذج المميزة (premium_orders): ${orderCount ?? 0} (مدفوع: ${paidOrders}, معلق: ${pendingOrders})
+- النماذج (templates): ${templateCount ?? 0}
+- طلبات التواصل (contact_requests): ${contactCount ?? 0}
+- قاعدة المعرفة (ai_knowledge_base): ${kbCount ?? 0}
+- محتوى البورتفوليو (portfolio_content): ${portfolioCount ?? 0}
+- إعدادات الإشعارات (notification_settings): ${notifCount ?? 0}
+- إعدادات المدير (admin_settings): ${adminSettingsCount ?? 0}
+- جلسات CAIO (caio_sessions): ${caioSessionCount ?? 0}
 
 📈 أكثر النماذج تحميلاً:
-${(topTemplates || []).map((t: any, i: number) => `${i + 1}. ${t.title} (${t.downloads_count} تحميل) - ${t.type === "premium" ? "مميز 💎" : "مجاني"}`).join("\n")}
+${(topTemplates || []).length > 0 ? (topTemplates || []).map((t: any, i: number) => `${i + 1}. ${t.title} (${t.downloads_count} تحميل) - ${t.type === "premium" ? "مميز 💎" : "مجاني"}`).join("\n") : "فارغ - لا توجد نماذج"}
 
 🏷️ فئات الاستشارات الأخيرة:
-${Object.entries(categories).map(([k, v]) => `- ${k}: ${v}`).join("\n") || "لا توجد بيانات"}
+${Object.entries(categories).length > 0 ? Object.entries(categories).map(([k, v]) => `- ${k}: ${v}`).join("\n") : "فارغ - لا توجد استشارات"}
 
 📋 آخر طلبات التوظيف:
-${(recentJobApps || []).slice(0, 5).map((j: any) => `- ${j.full_name} | ${j.department} | ${j.city} | ${j.status}`).join("\n") || "لا توجد"}
+${(recentJobApps || []).length > 0 ? (recentJobApps || []).slice(0, 5).map((j: any) => `- ${j.full_name} | ${j.department} | ${j.city} | ${j.status}`).join("\n") : "فارغ"}
 
 💰 آخر الطلبات المميزة:
-${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.template_name} | ${o.status}`).join("\n") || "لا توجد"}
+${(recentOrders || []).length > 0 ? (recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.template_name} | ${o.status}`).join("\n") : "فارغ"}
+
+👥 آخر العملاء المحتملين:
+${(recentLeads || []).length > 0 ? (recentLeads || []).slice(0, 5).map((l: any) => `- ${l.name} | ${l.phone} | ${l.role} | ${l.downloads_count} تحميل`).join("\n") : "فارغ"}
+
+📩 آخر طلبات التواصل:
+${(recentContacts || []).length > 0 ? (recentContacts || []).slice(0, 5).map((c: any) => `- ${c.full_name} | ${c.reason} | ${c.status}`).join("\n") : "فارغ"}
 === نهاية اللقطة ===`;
     }
 
@@ -510,9 +639,7 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
     let templateContext = "";
     if (agentType === "template_architect") {
       const { data: templates } = await supabase
-        .from("templates")
-        .select("title, description, category, type, gdrive_link")
-        .eq("is_active", true);
+        .from("templates").select("title, description, category, type, gdrive_link").eq("is_active", true);
 
       if (templates && templates.length > 0) {
         templateContext = `\n\n=== النماذج المتوفرة في المتجر ===\n${templates.map((t: any) => `- ${t.title} (${t.category}) [${t.type === "premium" ? "مميز 💎" : "مجاني"}]${t.description ? ": " + t.description : ""}`).join("\n")}\n=== نهاية القائمة ===`;
@@ -523,18 +650,13 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
 
     const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext + dbSnapshot + templateContext;
 
-    const aiMessages: any[] = [
-      { role: "system", content: systemPrompt },
-    ];
+    const aiMessages: any[] = [{ role: "system", content: systemPrompt }];
 
     // For CAIO sessions: fetch last 15 messages from DB
     if (agentType === "caio" && session_id) {
       const { data: sessionHistory } = await supabase
-        .from("chat_logs")
-        .select("role, message")
-        .eq("session_id", session_id)
-        .order("created_at", { ascending: true })
-        .limit(15);
+        .from("chat_logs").select("role, message").eq("session_id", session_id)
+        .order("created_at", { ascending: true }).limit(15);
 
       if (sessionHistory && sessionHistory.length > 0) {
         for (const h of sessionHistory) {
@@ -543,10 +665,7 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
       }
 
       const { data: sessionData } = await supabase
-        .from("caio_sessions")
-        .select("status, title")
-        .eq("id", session_id)
-        .maybeSingle();
+        .from("caio_sessions").select("status, title").eq("id", session_id).maybeSingle();
 
       if (sessionData && (!sessionHistory || sessionHistory.length === 0)) {
         aiMessages[0].content += "\n\nهذه جلسة استراتيجية جديدة بعنوان: \"" + (sessionData.title || "جلسة جديدة") + "\". ابدأ بتحية مناسبة.";
@@ -563,14 +682,17 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
       aiMessages.push({ role: "user", content: userMessage });
     }
 
-    // Save user message to chat_logs
+    // Save user message to chat_logs (with error check)
     const logData: any = {
       role: "user",
       message: userMessage,
       consultation_id: consultation_id || null,
     };
     if (session_id) logData.session_id = session_id;
-    await supabase.from("chat_logs").insert(logData);
+    const { error: userLogError } = await supabase.from("chat_logs").insert(logData);
+    if (userLogError) {
+      console.error("WARNING: user chat_log insert failed:", userLogError);
+    }
 
     // Call Lovable AI
     const response = await fetch(
@@ -581,36 +703,25 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: activeModel,
-          messages: aiMessages,
-          stream: true,
-        }),
+        body: JSON.stringify({ model: activeModel, messages: aiMessages, stream: true }),
       }
     );
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Payment required." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ error: "AI gateway error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Quality Scout: detect business opportunities and send to Telegram
     let isQualityScout = agentType === "quality_scout";
 
     const reader = response.body!.getReader();
@@ -629,50 +740,21 @@ ${(recentOrders || []).slice(0, 5).map((o: any) => `- ${o.customer_name} | ${o.t
                 consultation_id: consultation_id || null,
               };
               if (session_id) assistantLog.session_id = session_id;
-              await supabase.from("chat_logs").insert(assistantLog);
+              const { error: assistantLogError } = await supabase.from("chat_logs").insert(assistantLog);
+              if (assistantLogError) {
+                console.error("WARNING: assistant chat_log insert failed:", assistantLogError);
+              }
 
-              // Quality Scout: check for business opportunities in the conversation
+              // Quality Scout: check for business opportunities
               if (isQualityScout) {
                 const opportunityKeywords = ["تدقيق", "لوائح", "هيكلة", "استشارات", "منشأة", "شركة", "موظفين", "نعم"];
                 const userLower = userMessage.toLowerCase();
                 const hasOpportunity = opportunityKeywords.some(kw => userLower.includes(kw));
-                
+
                 if (hasOpportunity) {
-                  // Send lead alert to Telegram
-                  try {
-                    const { data: tgSettings } = await supabase
-                      .from("admin_settings").select("setting_key, setting_value")
-                      .in("setting_key", ["telegram_bot_token", "telegram_chat_id"]);
-                    
-                    const botToken = tgSettings?.find((s: any) => s.setting_key === "telegram_bot_token")?.setting_value;
-                    const chatId = tgSettings?.find((s: any) => s.setting_key === "telegram_chat_id")?.setting_value;
-                    
-                    if (botToken && chatId) {
-                      const LOVABLE_KEY = Deno.env.get("LOVABLE_API_KEY");
-                      const TELEGRAM_KEY = Deno.env.get("TELEGRAM_API_KEY");
-                      
-                      let tgUrl: string;
-                      let tgHeaders: Record<string, string>;
-                      
-                      if (LOVABLE_KEY && TELEGRAM_KEY) {
-                        tgUrl = "https://connector-gateway.lovable.dev/telegram/sendMessage";
-                        tgHeaders = { Authorization: `Bearer ${LOVABLE_KEY}`, "X-Connection-Api-Key": TELEGRAM_KEY, "Content-Type": "application/json" };
-                      } else {
-                        tgUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-                        tgHeaders = { "Content-Type": "application/json" };
-                      }
-                      
-                      await fetch(tgUrl, {
-                        method: "POST",
-                        headers: tgHeaders,
-                        body: JSON.stringify({
-                          chat_id: chatId,
-                          text: `🔍 <b>فرصة تجارية من كشاف الجودة!</b>\n\n💬 رسالة العميل: "${userMessage}"\n🤖 رد الوكيل: "${fullResponse.slice(0, 200)}..."`,
-                          parse_mode: "HTML",
-                        }),
-                      });
-                    }
-                  } catch (e) { console.error("Telegram quality scout error:", e); }
+                  await sendTelegramAlert(supabase,
+                    `🔍 <b>فرصة تجارية من كشاف الجودة!</b>\n\n💬 رسالة العميل: "${userMessage}"\n🤖 رد الوكيل: "${fullResponse.slice(0, 200)}..."`
+                  );
                 }
               }
             }

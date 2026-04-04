@@ -192,13 +192,14 @@ const FloatingAIChat = () => {
         }
       );
       const data = await resp.json();
+      const refId = data.ref_id || "";
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content: lang === "ar"
-            ? `✅ تم إنهاء المحادثة وإرسال ملخصها للأستاذ عبدالرحمن. شكراً لك ${sessionData.name}!\n\n📝 **الملخص:**\n${data.summary || "تم الإرسال"}`
-            : `✅ Conversation ended and summary sent to Mr. Abdulrahman. Thank you ${sessionData.name}!\n\n📝 **Summary:**\n${data.summary || "Sent successfully"}`,
+            ? `✅ تم إنهاء المحادثة وإرسال ملخصها للأستاذ عبدالرحمن. شكراً لك ${sessionData.name}!\n\n🔖 **الرقم المرجعي:** ${refId}\n\n📝 **الملخص:**\n${data.summary || "تم الإرسال"}\n\nاحتفظ بالرقم المرجعي للمتابعة.`
+            : `✅ Conversation ended and summary sent to Mr. Abdulrahman. Thank you ${sessionData.name}!\n\n🔖 **Reference ID:** ${refId}\n\n📝 **Summary:**\n${data.summary || "Sent successfully"}\n\nKeep your reference ID for follow-up.`,
         },
       ]);
     } catch {

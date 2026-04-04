@@ -176,14 +176,15 @@ const TemplateArchitectChat = ({ userName, userPhone }: TemplateArchitectChatPro
         }
       );
       const data = await resp.json();
+      const refId = data.ref_id || "";
       setEnded(true);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content: lang === "ar"
-            ? `✅ تم إرسال تقرير متطلبات التصميم للأستاذ عبدالرحمن بنجاح! سيتم التواصل معك عبر الواتساب قريباً.\n\n📝 **ملخص الطلب:**\n${data.summary || "تم الإرسال"}\n\nشكراً لثقتك بنا! 🌟`
-            : `✅ Design requirement report sent to Mr. Abdulrahman successfully! You'll be contacted via WhatsApp soon.\n\n📝 **Request Summary:**\n${data.summary || "Sent"}\n\nThank you for your trust! 🌟`,
+            ? `✅ تم إرسال تقرير متطلبات التصميم للأستاذ عبدالرحمن بنجاح! سيتم التواصل معك عبر الواتساب قريباً.\n\n🔖 **الرقم المرجعي:** ${refId}\n\n📝 **ملخص الطلب:**\n${data.summary || "تم الإرسال"}\n\nاحتفظ بالرقم المرجعي للمتابعة. شكراً لثقتك بنا! 🌟`
+            : `✅ Design requirement report sent to Mr. Abdulrahman successfully! You'll be contacted via WhatsApp soon.\n\n🔖 **Reference ID:** ${refId}\n\n📝 **Request Summary:**\n${data.summary || "Sent"}\n\nKeep your reference ID for follow-up. Thank you for your trust! 🌟`,
         },
       ]);
     } catch {
