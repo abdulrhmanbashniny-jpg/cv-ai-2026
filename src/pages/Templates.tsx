@@ -202,6 +202,7 @@ const Templates = () => {
         onClose={() => setThankYouOpen(false)}
         templateTitle={thankYouData.title}
         downloadUrl={thankYouData.url}
+        refId={thankYouData.refId}
       />
     </div>
   );
