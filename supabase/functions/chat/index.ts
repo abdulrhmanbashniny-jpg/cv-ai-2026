@@ -228,8 +228,50 @@ serve(async (req) => {
         summary = summaryData.choices?.[0]?.message?.content || summary;
       }
 
-      const clientName = visitor_name || "زائر";
-      const clientPhone = visitor_phone || "";
+      // Robust lead mapping: query leads table by session or phone to get actual data
+      let clientName = visitor_name || "";
+      let clientPhone = visitor_phone || "";
+      let clientRole = "";
+      
+      // Try to find the lead by phone number if we have one
+      if (clientPhone) {
+        const { data: leadData } = await supabase
+          .from("leads")
+          .select("name, phone, role")
+          .eq("phone", clientPhone)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (leadData) {
+          clientName = leadData.name || clientName;
+          clientPhone = leadData.phone || clientPhone;
+          clientRole = leadData.role || "";
+        }
+      }
+      
+      // Fallback: if still no name, try matching by visitor_name in leads
+      if (!clientName || clientName === "زائر") {
+        if (visitor_name && visitor_name !== "زائر") {
+          const { data: leadByName } = await supabase
+            .from("leads")
+            .select("name, phone, role")
+            .eq("name", visitor_name)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (leadByName) {
+            clientName = leadByName.name;
+            clientPhone = leadByName.phone || clientPhone;
+            clientRole = leadByName.role || "";
+          } else {
+            clientName = visitor_name;
+          }
+        }
+      }
+      
+      if (!clientName) clientName = "زائر";
       const agentLabels: Record<string, string> = {
         career_twin: "التوأم المهني",
         legal_advisor: "المستشار العمالي",
