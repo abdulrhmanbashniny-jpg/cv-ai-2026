@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -324,6 +324,14 @@ const AgentLogs = ({ chatLogs, consultations, agentKey, onRefresh }: { chatLogs:
   const [correcting, setCorrecting] = useState<string | null>(null);
   const [correction, setCorrection] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Auto-refresh logs every 10 seconds for real-time feel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      onRefresh();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [onRefresh]);
 
   const grouped = chatLogs.reduce((acc: Record<string, any[]>, log: any) => {
     const key = log.consultation_id || "no_session";

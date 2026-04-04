@@ -187,6 +187,7 @@ const FloatingAIChat = () => {
             messages: messages.filter((m) => m.content !== DISCLAIMER.content),
             agent: "career_twin",
             visitor_name: sessionData.name,
+            visitor_phone: sessionData.phone,
           }),
         }
       );
