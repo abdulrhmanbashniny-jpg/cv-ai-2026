@@ -13,7 +13,7 @@ interface ThankYouModalProps {
   refId?: string;
 }
 
-const ThankYouModal = ({ open, onClose, templateTitle, downloadUrl }: ThankYouModalProps) => {
+const ThankYouModal = ({ open, onClose, templateTitle, downloadUrl, refId }: ThankYouModalProps) => {
   const { t } = useLanguage();
   const isPremium = !downloadUrl;
   const [showScout, setShowScout] = useState(false);
