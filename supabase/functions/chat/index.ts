@@ -256,7 +256,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name, visitor_phone } = await req.json();
+    const { messages, consultation_id, agent, session_id, multimodal_content, action, visitor_name, visitor_phone, visitor_role, survey_scores } = await req.json();
 
     // ========== END CONVERSATION ==========
     if (action === "end_conversation") {
