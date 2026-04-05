@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,111 +7,24 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Bot, Scale, Gift, Save, Loader2, RotateCcw, Plus, Trash2, Edit3,
   Check, X, Brain, HelpCircle, MessageCircle, User, Star,
+  CheckCircle, MessageSquareWarning, Send, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 
 const DEFAULT_PROMPTS: Record<string, string> = {
-  agent_prompt_career_twin: `أنا عبدالرحمن سالم باشنيني، أتحدث بصيغة المتكلم "أنا". مدير تطوير الأعمال وخبير في الموارد البشرية والشؤون القانونية بخبرة تفوق 15 عامًا.
-
-نبرتي: تنفيذية، وقورة، ومهنية.
-أستخدم مصطلحات مثل: استدامة الأعمال، التحول الرقمي، الحوكمة، الامتثال.
-فلسفتي: "القانون قوة، والصلح حكمة".
-
-خلفيتي المهنية:
-- مدير تطوير الأعمال في مصنع دهانات وبلاستك جدة (2026 - الحاضر)
-- مدير الموارد البشرية والشؤون القانونية في مصنع دهانات وبلاستك جدة (2018 - 2025)
-- مدير مشاريع في نجوم الحفل للمعارض والمؤتمرات (2016 - 2018)
-- مسؤول موارد بشرية في شركة الأغذية العربية للتموين (2013 - 2016)
-- مساعد مدير موارد بشرية في فندق راديسون بلو (2010 - 2013)
-
-مؤهلاتي:
-- بكالوريوس إدارة موارد بشرية من جامعة الملك عبدالعزيز (2018)
-- رخصة استشارات عمالية
-
-تعليمات:
-- أجب بلغة المستخدم (عربي أو إنجليزي)
-- كن محترفاً ودقيقاً في إجاباتك
-- استند إلى نظام العمل السعودي عند الإجابة على الأسئلة القانونية
-- إذا لم تكن متأكداً من الإجابة، قل: "سأتحقق وأعود إليك بالرد"
-- لا تختلق معلومات قانونية
-- وجّه المستخدمين للاستشارات عبر /consultation والنماذج عبر /templates والسير عبر /career-gift`,
-
-  agent_prompt_legal_advisor: `أنت المستشار القانوني الرقمي التابع لمكتب عبدالرحمن سالم باشنيني، مدير تطوير الأعمال.
-تخصصك: نظام العمل السعودي وأنظمة العمل ذات العلاقة.
-
-مهمتك:
-- تقديم استشارات قانونية دقيقة مبنية على نظام العمل السعودي
-- اذكر المواد القانونية بدقة (مثل المادة 80، 77، 120 وغيرها)
-- تشخيص المشكلات العمالية وتقديم الحلول
-- تحديد ما إذا كانت الحالة تحتاج مراجعة بشرية
-
-بروتوكول الحكمة:
-- بعد كل تحليل قانوني، انصح بالصلح الودي كخيار أول
-- بادر بتوجيه المستخدم لتحميل النموذج المناسب من /templates
-
-أصدر رقم مرجع لكل استشارة بتنسيق: [ARB-2026-XXXX]
-
-تعليمات:
-- أجب بلغة المستخدم
-- كن دقيقاً في الإشارات القانونية
-- إذا كانت الحالة معقدة، أشر إلى الحاجة لمراجعة بشرية
-- لا تختلق مواد قانونية`,
-
-  agent_prompt_cv_assistant: `أنت مدرب مهني داعم ومشجع، هدية عبدالرحمن سالم باشنيني (مدير تطوير الأعمال) للشباب الباحثين عن عمل.
-
-خطوات العمل (اسأل سؤالاً واحداً فقط في كل مرة):
-1. اسأل عن الاسم الكامل والمسمى الوظيفي المستهدف
-2. اسأل عن المؤهلات الأكاديمية
-3. اسأل عن الخبرات العملية بالتفصيل
-4. اسأل عن المهارات والدورات التدريبية
-5. اسأل عن معلومات التواصل
-6. قم بصياغة السيرة الذاتية بتنسيق Markdown احترافي
-
-ساعد في صياغة الإنجازات بلغة قوية (قاد، طوّر، حقق، أسس).
-إذا واجه المستخدم مشكلة قانونية في عمله السابق، وجهه للمستشار العمالي /consultation.
-
-تعليمات:
-- اسأل سؤالاً واحداً في كل مرة
-- كن مشجعاً وإيجابياً
-- أجب بنفس لغة المستخدم`,
-
-  agent_prompt_caio: `أنت الشريك الاستراتيجي وعضو مجلس الإدارة الرقمي للأستاذ عبدالرحمن سالم باشنيني، مدير تطوير الأعمال.
-
-شخصيتك:
-- نبرة تحليلية، تنفيذية، ومخلصة
-- تخاطب عبدالرحمن بـ "سعادة المدير التنفيذي"
-- حلل بيانات الطلبات والمحادثات
-- بادر بالقول: "سعادة المدير التنفيذي، لاحظت كذا وأقترح كذا لزيادة الـ ROI"
-
-ابدأ دائماً بـ: "أهلاً بك سعادة المدير التنفيذي أستاذ عبدالرحمن. قمت بتحليل أحدث البيانات في المنصة."`,
-
-  agent_prompt_quality_scout: `أنت مدير نجاح العملاء الرقمي التابع لمنصة عبدالرحمن سالم باشنيني، مدير تطوير الأعمال.
-
-دورك: تظهر بعد انتهاء الخدمة لجمع التغذية الراجعة واكتشاف فرص الأعمال.
-
-مهمتك:
-1. اشكر المستخدم على استخدام الخدمة
-2. اسأل عن مستوى رضاه
-3. اسأل: "هل تحتاج منشأتك لتدقيق شامل على لوائحها؟"
-4. أي فرصة تجارية يتم اكتشافها، أرسلها فوراً لتيليجرام
-
-تعليمات:
-- أجب بلغة المستخدم
-- كن ودوداً وغير إلحاحي
-- ركز على اكتشاف "ألم" الشركات بشكل طبيعي`,
-
-  agent_prompt_template_architect: `[ROLE] أنت خبير في هندسة النماذج الإدارية والقانونية للأستاذ عبدالرحمن باشنيني. مهمتك هي مساعدة الزوار في العثور على النموذج المناسب من المتجر، أو جمع متطلبات تصميمه إذا لم يكن موجوداً.
-[LOGIC]
-- ابحث أولاً في قاعدة بيانات النماذج (Templates Table).
-- إذا وجدته: وجه الزائر لتحميله فوراً.
-- إذا لم تجده (مثال: نموذج استئذان): لا تعتذر وترحل. بدلاً من ذلك، قل: 'هذا النموذج غير متوفر حالياً في المتجر، ولكن الأستاذ عبدالرحمن يمكنه تصميمه لك خصيصاً ليناسب احتياجك. ما هي البيانات والبنود التي تود إضافتها في هذا النموذج؟'.
-[TASK]
-- ابدأ حواراً استقصائياً لجمع المتطلبات (طبيعة العمل، الغرض من النموذج، البنود الخاصة).
-- عند الانتهاء، اطلب من الزائر الضغط على زر (إنهاء المحادثة) ليتم إرسال 'ملف المتطلبات' للأستاذ عبدالرحمن للتنفيذ والتواصل معه عبر الواتساب.`,
+  agent_prompt_career_twin: `أنا عبدالرحمن سالم باشنيني، أتحدث بصيغة المتكلم "أنا". مدير تطوير الأعمال وخبير في الموارد البشرية والشؤون القانونية بخبرة تفوق 15 عامًا.`,
+  agent_prompt_legal_advisor: `أنت المستشار القانوني الرقمي التابع لمكتب عبدالرحمن سالم باشنيني.`,
+  agent_prompt_cv_assistant: `أنت مدرب مهني داعم ومشجع، هدية عبدالرحمن سالم باشنيني للشباب الباحثين عن عمل.`,
+  agent_prompt_caio: `أنت الشريك الاستراتيجي وعضو مجلس الإدارة الرقمي للأستاذ عبدالرحمن سالم باشنيني.`,
+  agent_prompt_quality_scout: `أنت مدير نجاح العملاء الرقمي التابع لمنصة عبدالرحمن سالم باشنيني.`,
+  agent_prompt_template_architect: `أنت مساعد النماذج والتصميم الرقمي للأستاذ عبدالرحمن سالم باشنيني.`,
 };
 
 const AGENTS = [
@@ -134,7 +47,43 @@ interface Props {
 
 const AdminAICommandCenter = ({ settings, onSave, kbEntries, chatLogs, consultations, onRefresh }: Props) => {
   const [selectedAgent, setSelectedAgent] = useState(AGENTS[0].key);
+  const [agentLogs, setAgentLogs] = useState<any[]>([]);
+  const [agentKB, setAgentKB] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const agent = AGENTS.find((a) => a.key === selectedAgent)!;
+
+  const fetchAgentData = useCallback(async (agentKey: string) => {
+    setLoading(true);
+    setAgentLogs([]);
+    setAgentKB([]);
+    try {
+      const [logsRes, kbRes] = await Promise.all([
+        supabase.functions.invoke("admin-data", {
+          body: { action: "select", table: "chat_logs", filters: { agent_type: agentKey } },
+        }),
+        supabase.functions.invoke("admin-data", {
+          body: { action: "select", table: "ai_knowledge_base", filters: { agent_target: agentKey } },
+        }),
+      ]);
+      setAgentLogs(logsRes.data?.data || []);
+      setAgentKB(kbRes.data?.data || []);
+    } catch (e) {
+      console.error("Failed to fetch agent data:", e);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchAgentData(selectedAgent);
+  }, [selectedAgent, fetchAgentData]);
+
+  const handleAgentSwitch = (key: string) => {
+    setSelectedAgent(key);
+  };
+
+  // Also show unfiltered data as fallback (for logs without agent_type set yet)
+  const allLogs = agentLogs.length > 0 ? agentLogs : chatLogs;
+  const allKB = agentKB.length > 0 ? agentKB : kbEntries;
 
   return (
     <div className="space-y-6">
@@ -144,7 +93,7 @@ const AdminAICommandCenter = ({ settings, onSave, kbEntries, chatLogs, consultat
           <Button
             key={a.key}
             variant={selectedAgent === a.key ? "default" : "outline"}
-            onClick={() => setSelectedAgent(a.key)}
+            onClick={() => handleAgentSwitch(a.key)}
             className="font-arabic gap-2 text-xs"
             size="sm"
           >
@@ -154,22 +103,34 @@ const AdminAICommandCenter = ({ settings, onSave, kbEntries, chatLogs, consultat
         ))}
       </div>
 
+      {loading && (
+        <div className="flex items-center justify-center py-8 gap-2">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span className="font-arabic text-sm text-muted-foreground">جارٍ تحميل بيانات الوكيل...</span>
+        </div>
+      )}
+
       {/* Agent Tabs */}
-      <Tabs defaultValue="settings" className="w-full">
+      <Tabs defaultValue="logs" className="w-full">
         <TabsList className="w-full justify-end font-arabic">
-          <TabsTrigger value="logs" className="font-arabic">سجل المحادثات</TabsTrigger>
-          <TabsTrigger value="memory" className="font-arabic">ذاكرة الوكيل</TabsTrigger>
-          <TabsTrigger value="settings" className="font-arabic">إعدادات الوكيل</TabsTrigger>
+          <TabsTrigger value="logs" className="font-arabic">🎯 مركز التدريب</TabsTrigger>
+          <TabsTrigger value="memory" className="font-arabic">🧠 القواعد الذهبية</TabsTrigger>
+          <TabsTrigger value="settings" className="font-arabic">⚙️ إعدادات الوكيل</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings">
           <AgentSettings key={agent.key} agent={agent} settings={settings} onSave={onSave} />
         </TabsContent>
         <TabsContent value="memory">
-          <AgentMemory kbEntries={kbEntries} chatLogs={chatLogs} onRefresh={onRefresh} />
+          <AgentMemory kbEntries={allKB} agentKey={selectedAgent} onRefresh={() => fetchAgentData(selectedAgent)} />
         </TabsContent>
         <TabsContent value="logs">
-          <AgentLogs chatLogs={chatLogs} consultations={consultations} agentKey={agent.key} onRefresh={onRefresh} />
+          <AgentTrainingCenter
+            chatLogs={allLogs}
+            consultations={consultations}
+            agentKey={selectedAgent}
+            onRefresh={() => fetchAgentData(selectedAgent)}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -212,8 +173,8 @@ const AgentSettings = ({ agent, settings, onSave }: { agent: typeof AGENTS[0]; s
   );
 };
 
-/* ---------- Agent Memory (Knowledge Base) ---------- */
-const AgentMemory = ({ kbEntries, chatLogs, onRefresh }: { kbEntries: any[]; chatLogs: any[]; onRefresh: () => void }) => {
+/* ---------- Agent Memory (Golden Rules) ---------- */
+const AgentMemory = ({ kbEntries, agentKey, onRefresh }: { kbEntries: any[]; agentKey: string; onRefresh: () => void }) => {
   const [newQ, setNewQ] = useState("");
   const [newA, setNewA] = useState("");
   const [newCat, setNewCat] = useState("");
@@ -226,9 +187,9 @@ const AgentMemory = ({ kbEntries, chatLogs, onRefresh }: { kbEntries: any[]; cha
     if (!newQ || !newA) return;
     setSaving(true);
     await supabase.functions.invoke("admin-data", {
-      body: { action: "insert", table: "ai_knowledge_base", data: { question: newQ, answer: newA, category: newCat || null } },
+      body: { action: "insert", table: "ai_knowledge_base", data: { question: newQ, answer: newA, category: newCat || null, agent_target: agentKey } },
     });
-    toast({ title: "تم", description: "تمت الإضافة لقاعدة المعرفة" });
+    toast({ title: "تم", description: "تمت الإضافة كقاعدة ذهبية" });
     setNewQ(""); setNewA(""); setNewCat("");
     setSaving(false);
     onRefresh();
@@ -249,20 +210,22 @@ const AgentMemory = ({ kbEntries, chatLogs, onRefresh }: { kbEntries: any[]; cha
     onRefresh();
   };
 
+  const agentLabel = AGENTS.find(a => a.key === agentKey)?.label || agentKey;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-arabic flex items-center gap-2">
-            <Plus className="h-4 w-4 text-primary" /> إضافة لقاعدة المعرفة
+            <Plus className="h-4 w-4 text-primary" /> إضافة قاعدة ذهبية لـ {agentLabel}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Input value={newQ} onChange={(e) => setNewQ(e.target.value)} placeholder="السؤال" className="text-right font-arabic" />
-          <Textarea value={newA} onChange={(e) => setNewA(e.target.value)} placeholder="الإجابة" className="text-right font-arabic" rows={4} />
+          <Input value={newQ} onChange={(e) => setNewQ(e.target.value)} placeholder="السؤال / السياق" className="text-right font-arabic" />
+          <Textarea value={newA} onChange={(e) => setNewA(e.target.value)} placeholder="القاعدة / الإجابة الصحيحة" className="text-right font-arabic" rows={4} />
           <Input value={newCat} onChange={(e) => setNewCat(e.target.value)} placeholder="الفئة (اختياري)" className="text-right font-arabic" />
           <Button onClick={addToKB} disabled={!newQ || !newA || saving} className="w-full bg-gold-shimmer text-primary-foreground font-arabic">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 ml-1" /> إضافة</>}
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-4 w-4 ml-1" /> حفظ كقاعدة ذهبية</>}
           </Button>
         </CardContent>
       </Card>
@@ -270,12 +233,13 @@ const AgentMemory = ({ kbEntries, chatLogs, onRefresh }: { kbEntries: any[]; cha
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-arabic flex items-center gap-2">
-            <Brain className="h-4 w-4 text-purple-400" /> قاعدة المعرفة ({kbEntries.length})
+            <Brain className="h-4 w-4 text-purple-400" /> القواعد الذهبية ({kbEntries.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px]">
             <div className="space-y-3">
+              {kbEntries.length === 0 && <p className="text-muted-foreground font-arabic text-sm text-center py-8">لا توجد قواعد لهذا الوكيل بعد</p>}
               {kbEntries.map((kb: any) => (
                 <div key={kb.id} className="bg-secondary/20 rounded-lg p-3 border border-border/30">
                   {editingId === kb.id ? (
@@ -305,6 +269,7 @@ const AgentMemory = ({ kbEntries, chatLogs, onRefresh }: { kbEntries: any[]; cha
                         <p className="text-sm font-arabic text-primary font-medium">{kb.question}</p>
                         <p className="text-xs font-arabic text-muted-foreground mt-1">{kb.answer.length > 120 ? kb.answer.slice(0, 120) + "..." : kb.answer}</p>
                         {kb.category && <Badge variant="outline" className="mt-1 text-xs font-arabic">{kb.category}</Badge>}
+                        {kb.source_log_id && <Badge variant="secondary" className="mt-1 text-xs font-arabic mr-1">من تصحيح</Badge>}
                       </div>
                     </div>
                   )}
@@ -318,23 +283,18 @@ const AgentMemory = ({ kbEntries, chatLogs, onRefresh }: { kbEntries: any[]; cha
   );
 };
 
-/* ---------- Agent Logs ---------- */
-const AgentLogs = ({ chatLogs, consultations, agentKey, onRefresh }: { chatLogs: any[]; consultations: any[]; agentKey: string; onRefresh: () => void }) => {
+/* ---------- Agent Training Center (RLHF) ---------- */
+const AgentTrainingCenter = ({ chatLogs, consultations, agentKey, onRefresh }: { chatLogs: any[]; consultations: any[]; agentKey: string; onRefresh: () => void }) => {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
-  const [correcting, setCorrecting] = useState<string | null>(null);
-  const [correction, setCorrection] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [trainingModal, setTrainingModal] = useState<{ logId: string; question: string; wrongAnswer: string } | null>(null);
 
-  // Auto-refresh logs every 10 seconds for real-time feel
   useEffect(() => {
-    const interval = setInterval(() => {
-      onRefresh();
-    }, 10000);
+    const interval = setInterval(onRefresh, 15000);
     return () => clearInterval(interval);
   }, [onRefresh]);
 
   const grouped = chatLogs.reduce((acc: Record<string, any[]>, log: any) => {
-    const key = log.consultation_id || "no_session";
+    const key = log.consultation_id || log.session_id || "no_session";
     if (!acc[key]) acc[key] = [];
     acc[key].push(log);
     return acc;
@@ -347,101 +307,326 @@ const AgentLogs = ({ chatLogs, consultations, agentKey, onRefresh }: { chatLogs:
 
   const getConsultationInfo = (id: string) => consultations.find((c: any) => c.id === id);
 
-  const submitCorrection = async (logId: string) => {
-    if (!correction.trim()) return;
-    setSaving(true);
+  const approveLog = async (logId: string) => {
     await supabase.functions.invoke("admin-data", {
-      body: { action: "insert", table: "ai_knowledge_base", data: { question: `تصحيح للإجابة ${logId}`, answer: correction, category: "تصحيحات" } },
+      body: { action: "update", table: "chat_logs", id: logId, data: { review_status: "approved" } },
     });
-    toast({ title: "تم", description: "تم حفظ التصحيح" });
-    setCorrecting(null);
-    setCorrection("");
-    setSaving(false);
+    toast({ title: "✅ تم الاعتماد", description: "تم اعتماد هذه الإجابة" });
     onRefresh();
   };
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-arabic flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-primary" /> الجلسات ({sessionIds.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-[500px]">
-            <div className="space-y-1 p-3">
-              {sessionIds.length === 0 && <p className="text-muted-foreground font-arabic text-sm text-center py-8">لا توجد جلسات</p>}
-              {sessionIds.map((sid) => {
-                const info = getConsultationInfo(sid);
-                const logs = grouped[sid];
-                return (
-                  <button key={sid} onClick={() => setSelectedSession(sid)}
-                    className={`w-full text-right p-3 rounded-lg border transition-colors ${selectedSession === sid ? "border-primary/50 bg-primary/10" : "border-transparent hover:bg-secondary/30"}`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <Badge variant="outline" className="text-[10px] font-mono">{logs.length} رسالة</Badge>
-                      <span className="font-arabic text-sm font-medium text-foreground">{info?.visitor_name || "زائر"}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1">{new Date(logs[0]?.created_at).toLocaleDateString("ar-SA")} - {new Date(logs[0]?.created_at).toLocaleTimeString("ar-SA")}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+  const openTrainingModal = (logId: string, logs: any[]) => {
+    const logIndex = logs.findIndex((l: any) => l.id === logId);
+    const userQuestion = logIndex > 0 ? logs[logIndex - 1]?.message || "" : "";
+    const wrongAnswer = logs[logIndex]?.message || "";
+    setTrainingModal({ logId, question: userQuestion, wrongAnswer });
+  };
 
-      <Card className="border-border/50 lg:col-span-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-arabic flex items-center gap-2">
-            <HelpCircle className="h-4 w-4 text-amber-400" /> تفاصيل المحادثة
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px]">
-            {!selectedSession ? (
-              <p className="text-muted-foreground font-arabic text-sm text-center py-20">اختر جلسة لعرض المحادثة</p>
-            ) : (
-              <div className="space-y-3">
-                {activeLogs.map((log: any) => (
-                  <div key={log.id} className="flex gap-2">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${log.role === "assistant" ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"}`}>
-                      {log.role === "assistant" ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className={`rounded-xl px-3 py-2 text-sm font-arabic ${log.role === "assistant" ? "bg-secondary/50" : "bg-primary/10"}`}>
-                        <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
-                          <ReactMarkdown>{log.message}</ReactMarkdown>
+  const statusBadge = (status: string) => {
+    if (status === "approved") return <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px] font-arabic">✅ معتمدة</Badge>;
+    if (status === "corrected") return <Badge className="bg-amber-500/20 text-amber-400 text-[10px] font-arabic">🔧 مُصحَّحة</Badge>;
+    return <Badge variant="outline" className="text-[10px] font-arabic text-muted-foreground">⏳ معلقة</Badge>;
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-arabic flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary" /> الجلسات ({sessionIds.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[500px]">
+              <div className="space-y-1 p-3">
+                {sessionIds.length === 0 && <p className="text-muted-foreground font-arabic text-sm text-center py-8">لا توجد جلسات لهذا الوكيل</p>}
+                {sessionIds.map((sid) => {
+                  const info = getConsultationInfo(sid);
+                  const logs = grouped[sid];
+                  const pendingCount = logs.filter((l: any) => l.role === "assistant" && (!l.review_status || l.review_status === "pending")).length;
+                  return (
+                    <button key={sid} onClick={() => setSelectedSession(sid)}
+                      className={`w-full text-right p-3 rounded-lg border transition-colors ${selectedSession === sid ? "border-primary/50 bg-primary/10" : "border-transparent hover:bg-secondary/30"}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex gap-1">
+                          <Badge variant="outline" className="text-[10px] font-mono">{logs.length} رسالة</Badge>
+                          {pendingCount > 0 && <Badge className="bg-amber-500/20 text-amber-400 text-[10px]">{pendingCount} معلقة</Badge>}
                         </div>
+                        <span className="font-arabic text-sm font-medium text-foreground">{info?.visitor_name || "زائر"}</span>
                       </div>
-                      {log.role === "assistant" && (
-                        <div className="mt-1">
-                          {correcting === log.id ? (
-                            <div className="flex gap-2 mt-2">
-                              <Input value={correction} onChange={(e) => setCorrection(e.target.value)} placeholder="اكتب التصحيح..." className="text-right font-arabic text-xs" />
-                              <Button size="sm" onClick={() => submitCorrection(log.id)} disabled={saving} className="text-xs font-arabic">
-                                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "حفظ"}
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => setCorrecting(null)} className="text-xs">✕</Button>
-                            </div>
-                          ) : (
-                            <Button size="sm" variant="ghost" className="text-[10px] font-arabic text-muted-foreground" onClick={() => setCorrecting(log.id)}>
-                              ✏️ تصحيح
-                            </Button>
-                          )}
+                      <p className="text-[10px] text-muted-foreground mt-1">{new Date(logs[0]?.created_at).toLocaleDateString("ar-SA")} - {new Date(logs[0]?.created_at).toLocaleTimeString("ar-SA")}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-arabic flex items-center gap-2">
+              <Brain className="h-4 w-4 text-amber-400" /> مركز التدريب التفاعلي (RLHF)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[500px]">
+              {!selectedSession ? (
+                <p className="text-muted-foreground font-arabic text-sm text-center py-20">اختر جلسة لبدء مراجعة وتدريب الوكيل</p>
+              ) : (
+                <div className="space-y-3">
+                  {activeLogs.map((log: any) => (
+                    <div key={log.id} className="flex gap-2">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${log.role === "assistant" ? "bg-primary/20 text-primary" : "bg-secondary text-foreground"}`}>
+                        {log.role === "assistant" ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className={`rounded-xl px-3 py-2 text-sm font-arabic ${log.role === "assistant" ? "bg-secondary/50" : "bg-primary/10"}`}>
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
+                            <ReactMarkdown>{log.message}</ReactMarkdown>
+                          </div>
                         </div>
-                      )}
-                      <p className="text-[10px] text-muted-foreground mt-1">{new Date(log.created_at).toLocaleTimeString("ar-SA")}</p>
+                        {log.role === "assistant" && (
+                          <div className="mt-1 flex items-center gap-2 flex-wrap">
+                            {statusBadge(log.review_status || "pending")}
+                            {(!log.review_status || log.review_status === "pending") && (
+                              <>
+                                <Button size="sm" variant="outline" className="text-[10px] font-arabic gap-1 h-6 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                  onClick={() => approveLog(log.id)}>
+                                  <CheckCircle className="h-3 w-3" /> اعتماد الإجابة
+                                </Button>
+                                <Button size="sm" variant="outline" className="text-[10px] font-arabic gap-1 h-6 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                                  onClick={() => openTrainingModal(log.id, activeLogs)}>
+                                  <MessageSquareWarning className="h-3 w-3" /> مناقشة وتصحيح
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-1">{new Date(log.created_at).toLocaleTimeString("ar-SA")}</p>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Interactive Training Modal */}
+      {trainingModal && (
+        <TrainingChatModal
+          logId={trainingModal.logId}
+          originalQuestion={trainingModal.question}
+          wrongAnswer={trainingModal.wrongAnswer}
+          agentKey={agentKey}
+          onClose={() => setTrainingModal(null)}
+          onCommit={() => { setTrainingModal(null); onRefresh(); }}
+        />
+      )}
+    </>
+  );
+};
+
+/* ---------- Interactive Training Chat Modal ---------- */
+interface TrainingChatModalProps {
+  logId: string;
+  originalQuestion: string;
+  wrongAnswer: string;
+  agentKey: string;
+  onClose: () => void;
+  onCommit: () => void;
+}
+
+const TrainingChatModal = ({ logId, originalQuestion, wrongAnswer, agentKey, onClose, onCommit }: TrainingChatModalProps) => {
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [committing, setCommitting] = useState(false);
+  const [proposedRule, setProposedRule] = useState("");
+
+  const agentLabel = AGENTS.find(a => a.key === agentKey)?.label || agentKey;
+
+  // Initial trainer AI message
+  useEffect(() => {
+    setMessages([{
+      role: "assistant",
+      content: `📋 **سياق المراجعة:**\n\n**سؤال المستخدم:**\n> ${originalQuestion || "غير متوفر"}\n\n**إجابة الوكيل (${agentLabel}):**\n> ${wrongAnswer.slice(0, 300)}${wrongAnswer.length > 300 ? "..." : ""}\n\n---\n\n🎯 أنا مساعد التدريب. أخبرني ما الخطأ في هذه الإجابة وما يجب أن تكون عليه القاعدة الصحيحة. سأساعدك في صياغتها كقاعدة ذهبية.`
+    }]);
+  }, [originalQuestion, wrongAnswer, agentLabel]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || loading) return;
+    const userMsg = input.trim();
+    setInput("");
+    const newMessages = [...messages, { role: "user", content: userMsg }];
+    setMessages(newMessages);
+    setLoading(true);
+
+    try {
+      const trainerPrompt = `أنت "مساعد التدريب" لنظام RLHF. مهمتك مساعدة المدير في صياغة قاعدة ذهبية لتدريب وكيل الذكاء الاصطناعي "${agentLabel}".
+
+السياق:
+- سؤال المستخدم الأصلي: "${originalQuestion}"
+- إجابة الوكيل الخاطئة: "${wrongAnswer.slice(0, 500)}"
+
+تعليمات:
+1. استمع لملاحظات المدير بعناية
+2. ساعده في صياغة القاعدة بشكل واضح ومحدد
+3. عندما تصل لصيغة نهائية، اعرضها بتنسيق واضح وقل: "هل تريد حفظ هذه القاعدة الذهبية؟"
+4. القاعدة يجب أن تكون: محددة، قابلة للتطبيق، ومرتبطة بسياق واضح
+5. أجب بالعربية دائماً`;
+
+      const resp = await supabase.functions.invoke("chat", {
+        body: {
+          messages: [
+            { role: "system", content: trainerPrompt },
+            ...newMessages.map(m => ({ role: m.role, content: m.content })),
+          ],
+          agent: "caio", // Use CAIO model for training
+        },
+      });
+
+      if (resp.error) throw resp.error;
+
+      // Handle streaming response
+      let aiResponse = "";
+      if (typeof resp.data === "string") {
+        const lines = resp.data.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ") && line.slice(6).trim() !== "[DONE]") {
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) aiResponse += content;
+            } catch { /* partial */ }
+          }
+        }
+      } else if (resp.data?.choices) {
+        aiResponse = resp.data.choices[0]?.message?.content || "";
+      }
+
+      if (!aiResponse) aiResponse = "حدث خطأ في الاتصال. حاول مرة أخرى.";
+
+      setMessages(prev => [...prev, { role: "assistant", content: aiResponse }]);
+      
+      // Extract proposed rule from the last AI response
+      if (aiResponse.includes("القاعدة") || aiResponse.includes("قاعدة ذهبية")) {
+        setProposedRule(aiResponse);
+      }
+    } catch (e) {
+      console.error("Training chat error:", e);
+      setMessages(prev => [...prev, { role: "assistant", content: "حدث خطأ. حاول مرة أخرى." }]);
+    }
+    setLoading(false);
+  };
+
+  const commitToMemory = async () => {
+    setCommitting(true);
+    try {
+      // Get the last AI message as the rule, or use proposedRule
+      const lastAiMsg = [...messages].reverse().find(m => m.role === "assistant")?.content || proposedRule;
+      const ruleText = lastAiMsg || "قاعدة مُصحَّحة من مراجعة المدير";
+
+      // 1. Insert into knowledge base with agent_target
+      await supabase.functions.invoke("admin-data", {
+        body: {
+          action: "insert",
+          table: "ai_knowledge_base",
+          data: {
+            question: `[تصحيح] ${originalQuestion || "سياق عام"}`,
+            answer: ruleText,
+            category: "قواعد ذهبية - RLHF",
+            agent_target: agentKey,
+            source_log_id: logId,
+          },
+        },
+      });
+
+      // 2. Mark original log as corrected
+      await supabase.functions.invoke("admin-data", {
+        body: { action: "update", table: "chat_logs", id: logId, data: { review_status: "corrected" } },
+      });
+
+      toast({
+        title: "🏆 تم حفظ القاعدة الذهبية!",
+        description: `تم تدريب ${agentLabel} بنجاح. القاعدة الجديدة ستُطبَّق في جميع المحادثات القادمة.`,
+      });
+      onCommit();
+    } catch (e) {
+      console.error("Commit error:", e);
+      toast({ title: "خطأ", description: "فشل في حفظ القاعدة", variant: "destructive" });
+    }
+    setCommitting(false);
+  };
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="font-arabic text-right flex items-center gap-2 justify-end">
+            <span>مناقشة وتصحيح - {agentLabel}</span>
+            <Brain className="h-5 w-5 text-amber-400" />
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Chat Messages */}
+        <ScrollArea className="flex-1 min-h-[300px] max-h-[400px] border rounded-lg p-3">
+          <div className="space-y-3">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === "assistant" ? "bg-amber-500/20 text-amber-400" : "bg-primary/20 text-primary"}`}>
+                  {msg.role === "assistant" ? <Sparkles className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+                </div>
+                <div className={`flex-1 max-w-[80%] rounded-xl px-3 py-2 text-sm font-arabic ${msg.role === "assistant" ? "bg-secondary/50" : "bg-primary/10"}`}>
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:m-0">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
-                ))}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex gap-2">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center bg-amber-500/20 text-amber-400">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                </div>
+                <div className="bg-secondary/50 rounded-xl px-3 py-2 text-sm font-arabic text-muted-foreground">
+                  جارٍ التفكير...
+                </div>
               </div>
             )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        </ScrollArea>
+
+        {/* Input Area */}
+        <div className="flex gap-2 mt-2">
+          <Button size="icon" onClick={sendMessage} disabled={!input.trim() || loading} className="bg-primary">
+            <Send className="h-4 w-4" />
+          </Button>
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+            placeholder="اكتب ملاحظتك للتصحيح..."
+            className="text-right font-arabic"
+            disabled={loading}
+          />
+        </div>
+
+        {/* Commit Button - Always Visible */}
+        <Button
+          onClick={commitToMemory}
+          disabled={committing || messages.length < 2}
+          className="w-full mt-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-arabic gap-2 h-11"
+        >
+          {committing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          ⭐ حفظ كقاعدة ذهبية - Commit to Memory
+        </Button>
+      </DialogContent>
+    </Dialog>
   );
 };
 
