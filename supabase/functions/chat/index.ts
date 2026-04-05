@@ -662,7 +662,7 @@ ${(recentContacts || []).length > 0 ? (recentContacts || []).slice(0, 5).map((c:
       }
     }
 
-    const systemPrompt = systemPromptBase + portfolioContext + knowledgeContext + dbSnapshot + templateContext;
+    const systemPrompt = systemPromptBase + rlhfRulesContext + portfolioContext + knowledgeContext + dbSnapshot + templateContext;
 
     const aiMessages: any[] = [{ role: "system", content: systemPrompt }];
 
