@@ -123,7 +123,7 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, contactMessages, load
                     <StatusSelect value={app.status || "pending"} table="job_applications" id={app.id} />
                   </div>
                   <div className="text-right">
-                    <h4 className="font-bold font-arabic text-foreground">{app.full_name}</h4>
+                    <h4 className="font-bold font-arabic text-foreground">{maskName(app.full_name)}</h4>
                     <p className="text-sm text-muted-foreground font-arabic">{app.city} • {app.department}</p>
                   </div>
                 </div>
