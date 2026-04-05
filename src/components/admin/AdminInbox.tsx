@@ -217,9 +217,9 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, contactMessages, load
                     <StatusSelect value={msg.status || "pending"} table="contact_requests" id={msg.id} />
                   </div>
                   <div className="text-right">
-                    <h4 className="font-bold font-arabic text-foreground">{msg.full_name}</h4>
-                    {msg.email && <p className="text-sm text-muted-foreground">{msg.email}</p>}
-                    {msg.phone && <p className="text-sm text-muted-foreground" dir="ltr">{msg.phone}</p>}
+                     <h4 className="font-bold font-arabic text-foreground">{maskName(msg.full_name)}</h4>
+                     {msg.email && <p className="text-sm text-muted-foreground">{maskPhone(msg.email)}</p>}
+                     {msg.phone && <p className="text-sm text-muted-foreground" dir="ltr">{maskPhone(msg.phone)}</p>}
                   </div>
                 </div>
                 <p className="text-sm font-arabic text-foreground bg-secondary/30 rounded-lg p-3 mb-3">{msg.reason}</p>
