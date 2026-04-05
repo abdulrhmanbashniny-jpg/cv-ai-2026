@@ -703,6 +703,7 @@ ${(recentContacts || []).length > 0 ? (recentContacts || []).slice(0, 5).map((c:
       role: "user",
       message: userMessage,
       consultation_id: consultation_id || null,
+      agent_type: agentType,
     };
     if (session_id) logData.session_id = session_id;
     const { error: userLogError } = await supabase.from("chat_logs").insert(logData);
