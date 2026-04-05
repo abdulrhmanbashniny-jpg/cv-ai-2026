@@ -21,6 +21,8 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
   const [showCvEn, setShowCvEn] = useState(settings.show_cv_en !== "false");
   const [footerEmail, setFooterEmail] = useState(settings.footer_email || "info@bashniny.com");
   const [footerPhone, setFooterPhone] = useState(settings.footer_phone || "");
+  const [cvArUrl, setCvArUrl] = useState(settings.cv_ar_url || "/cv/CV-Ar.docx");
+  const [cvEnUrl, setCvEnUrl] = useState(settings.cv_en_url || "/cv/CV-En.docx");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [heroImageUrl, setHeroImageUrl] = useState(settings.hero_image_url || "");
