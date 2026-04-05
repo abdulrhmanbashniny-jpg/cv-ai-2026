@@ -40,30 +40,36 @@ export type Database = {
       }
       ai_knowledge_base: {
         Row: {
+          agent_target: string | null
           answer: string
           category: string | null
           created_at: string
           id: string
           is_active: boolean
           question: string
+          source_log_id: string | null
           updated_at: string
         }
         Insert: {
+          agent_target?: string | null
           answer: string
           category?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           question: string
+          source_log_id?: string | null
           updated_at?: string
         }
         Update: {
+          agent_target?: string | null
           answer?: string
           category?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           question?: string
+          source_log_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -94,26 +100,32 @@ export type Database = {
       }
       chat_logs: {
         Row: {
+          agent_type: string | null
           consultation_id: string | null
           created_at: string
           id: string
           message: string
+          review_status: string
           role: string
           session_id: string | null
         }
         Insert: {
+          agent_type?: string | null
           consultation_id?: string | null
           created_at?: string
           id?: string
           message: string
+          review_status?: string
           role: string
           session_id?: string | null
         }
         Update: {
+          agent_type?: string | null
           consultation_id?: string | null
           created_at?: string
           id?: string
           message?: string
+          review_status?: string
           role?: string
           session_id?: string | null
         }
