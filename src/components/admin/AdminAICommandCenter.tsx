@@ -355,7 +355,7 @@ const AgentTrainingCenter = ({ chatLogs, consultations, agentKey, onRefresh }: {
                           <Badge variant="outline" className="text-[10px] font-mono">{logs.length} رسالة</Badge>
                           {pendingCount > 0 && <Badge className="bg-amber-500/20 text-amber-400 text-[10px]">{pendingCount} معلقة</Badge>}
                         </div>
-                        <span className="font-arabic text-sm font-medium text-foreground">{info?.visitor_name || "زائر"}</span>
+                        <span className="font-arabic text-sm font-medium text-foreground">{maskName(info?.visitor_name) || "زائر"}</span>
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">{new Date(logs[0]?.created_at).toLocaleDateString("ar-SA")} - {new Date(logs[0]?.created_at).toLocaleTimeString("ar-SA")}</p>
                     </button>

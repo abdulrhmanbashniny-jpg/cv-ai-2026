@@ -97,7 +97,7 @@ const AdminChatHistory = ({ chatLogs, consultations, onRefresh }: AdminChatHisto
                         {logs.length} رسالة
                       </Badge>
                       <span className="font-arabic text-sm font-medium text-foreground">
-                        {info?.visitor_name || "زائر"}
+                        {maskName(info?.visitor_name) || "زائر"}
                       </span>
                     </div>
                     {info && (
