@@ -426,7 +426,34 @@ serve(async (req) => {
         dept: agentType === "template_architect" ? "طلب تصميم نموذج" : "استشارة/خدمة",
       });
 
-      // 5. Send Telegram alert
+      // 5. Save consultation record with survey scores
+      const consultationData: any = {
+        visitor_name: clientName,
+        visitor_phone: clientPhone,
+        visitor_role: visitor_role || clientRole || "",
+        issue_category: agentType === "legal_advisor" ? "استشارة عمالية" : agentType === "template_architect" ? "طلب تصميم نموذج" : "خدمة عامة",
+        reference_number: refId,
+        summary: summary,
+        ai_response: chatHistory.slice(0, 5000),
+        status: "closed",
+        agent_type: agentType,
+        needs_human_review: false,
+      };
+
+      if (survey_scores) {
+        if (survey_scores.ease) consultationData.survey_ease = survey_scores.ease;
+        if (survey_scores.quality) consultationData.survey_quality = survey_scores.quality;
+        if (survey_scores.needs) consultationData.survey_needs = survey_scores.needs;
+      }
+
+      const { error: consultError } = await supabase.from("consultations").insert(consultationData);
+      if (consultError) {
+        console.error("WARNING: consultation insert failed:", consultError);
+      } else {
+        console.log("✅ Consultation saved:", refId);
+      }
+
+      // 6. Send Telegram alert
       const agentLabels: Record<string, string> = {
         career_twin: "التوأم المهني",
         legal_advisor: "المستشار العمالي",
@@ -439,23 +466,33 @@ serve(async (req) => {
       const cleanPhone = clientPhone.replace(/[^0-9+]/g, "");
       const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("+") ? cleanPhone.slice(1) : cleanPhone}?text=${encodeURIComponent(`مرحباً ${clientName}، بخصوص طلبك رقم ${refId}...`)}` : "";
 
+      // Survey scores display
+      const surveyBlock = survey_scores
+        ? `\n\n⭐ <b>تقييم العميل:</b>\n` +
+          `   سهولة الخدمة: ${"⭐".repeat(survey_scores.ease || 0)} (${survey_scores.ease || 0}/5)\n` +
+          `   جودة المخرجات: ${"⭐".repeat(survey_scores.quality || 0)} (${survey_scores.quality || 0}/5)\n` +
+          (survey_scores.needs ? `   احتياجات مستقبلية: ${survey_scores.needs}` : "")
+        : "";
+
       let telegramMsg = "";
       if (isTemplateArchitect) {
         telegramMsg = `📐 <b>تقرير متطلبات تصميم نموذج جديد!</b>\n\n` +
           `🔖 الرقم المرجعي: <code>${refId}</code>\n` +
           `👤 العميل: ${clientName}\n` +
-          (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
+          (clientRole || visitor_role ? `🏷️ الدور: ${visitor_role || clientRole}\n` : "") +
           (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
           `\n📋 <b>التقرير:</b>\n${summary}` +
+          surveyBlock +
           (whatsappLink ? `\n\n📱 <b>واتساب مباشر:</b> ${whatsappLink}` : "");
       } else {
         telegramMsg = `✅ <b>طلب خدمة/استشارة مكتمل!</b>\n\n` +
           `🔖 الرقم المرجعي: <code>${refId}</code>\n` +
           `🤖 الوكيل: ${agentLabels[agentType] || agentType}\n` +
           `👤 العميل: ${clientName}\n` +
-          (clientRole ? `🏷️ الدور: ${clientRole}\n` : "") +
+          (clientRole || visitor_role ? `🏷️ الدور: ${visitor_role || clientRole}\n` : "") +
           (clientPhone ? `📞 الجوال: ${clientPhone}\n` : "") +
           `📝 الملخص: ${summary}` +
+          surveyBlock +
           (whatsappLink ? `\n\n📱 واتساب مباشر: ${whatsappLink}` : "");
       }
 
