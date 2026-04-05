@@ -755,6 +755,7 @@ ${(recentContacts || []).length > 0 ? (recentContacts || []).slice(0, 5).map((c:
                 role: "assistant",
                 message: fullResponse,
                 consultation_id: consultation_id || null,
+                agent_type: agentType,
               };
               if (session_id) assistantLog.session_id = session_id;
               const { error: assistantLogError } = await supabase.from("chat_logs").insert(assistantLog);
