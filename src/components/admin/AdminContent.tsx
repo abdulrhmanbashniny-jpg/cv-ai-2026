@@ -59,6 +59,8 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
       { setting_key: "footer_email", setting_value: footerEmail },
       { setting_key: "footer_phone", setting_value: footerPhone },
       { setting_key: "hero_image_url", setting_value: heroImageUrl },
+      { setting_key: "cv_ar_url", setting_value: cvArUrl },
+      { setting_key: "cv_en_url", setting_value: cvEnUrl },
     ]);
     setSaving(false);
     toast({ title: "تم", description: "تم حفظ إعدادات المحتوى" });
