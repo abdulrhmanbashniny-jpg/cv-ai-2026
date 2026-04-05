@@ -192,7 +192,7 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, contactMessages, load
                     <StatusSelect value={c.status || "open"} table="consultations" id={c.id} />
                   </div>
                   <div className="text-right">
-                    <h4 className="font-bold font-arabic text-foreground">{c.visitor_name || "زائر"}</h4>
+                    <h4 className="font-bold font-arabic text-foreground">{maskName(c.visitor_name) || "زائر"}</h4>
                     <p className="text-sm text-muted-foreground font-arabic">{c.issue_category}</p>
                     {c.summary && <p className="text-sm text-muted-foreground font-arabic mt-1 line-clamp-2">{c.summary}</p>}
                   </div>
