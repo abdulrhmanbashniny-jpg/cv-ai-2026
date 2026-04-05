@@ -411,6 +411,7 @@ serve(async (req) => {
         message: `[ملخص - ${refId}] ${summary}`,
         consultation_id: consultation_id || null,
         session_id: session_id || null,
+        agent_type: agentType,
       });
       if (summaryLogError) {
         console.error("WARNING: summary log insert failed:", summaryLogError);
