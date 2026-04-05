@@ -523,6 +523,20 @@ serve(async (req) => {
     let portfolioContext = "";
     let knowledgeContext = "";
     let dbSnapshot = "";
+    let rlhfRulesContext = "";
+
+    // RLHF: Fetch agent-specific golden rules from ai_knowledge_base
+    {
+      const { data: agentRules } = await supabase
+        .from("ai_knowledge_base")
+        .select("question, answer")
+        .eq("is_active", true)
+        .eq("agent_target", agentType);
+
+      if (agentRules && agentRules.length > 0) {
+        rlhfRulesContext = `\n\n⚠️ قواعد حاسمة من تدريب المدير (CRITICAL RULES LEARNED FROM ADMIN - يجب تطبيقها بأولوية مطلقة):\n${agentRules.map((r, i) => `${i + 1}. السياق: ${r.question}\n   القاعدة: ${r.answer}`).join("\n\n")}`;
+      }
+    }
 
     if (agentType === "career_twin") {
       const { data: portfolioData } = await supabase
