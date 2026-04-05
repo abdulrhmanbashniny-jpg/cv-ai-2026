@@ -139,12 +139,16 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
               </div>
               <span className="font-arabic text-sm font-medium text-foreground">السيرة الذاتية - عربي</span>
             </div>
+            <div className="mb-2">
+              <label className="block font-arabic text-xs text-muted-foreground mb-1">رابط الملف (URL أو مسار)</label>
+              <Input value={cvArUrl} onChange={(e) => setCvArUrl(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="/cv/CV-Ar.docx" />
+            </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => window.open("/cv/CV-Ar.docx")}>
+              <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => window.open(cvArUrl)}>
                 <Eye className="h-3 w-3" />معاينة
               </Button>
               <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" asChild>
-                <a href="/cv/CV-Ar.docx" download><Download className="h-3 w-3" />تحميل</a>
+                <a href={cvArUrl} download><Download className="h-3 w-3" />تحميل</a>
               </Button>
             </div>
           </div>
