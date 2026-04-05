@@ -2,29 +2,39 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Phone } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
+const ROLES = [
+  { value: "موظف", label: "موظف" },
+  { value: "صاحب منشأة", label: "صاحب منشأة" },
+  { value: "باحث عن عمل", label: "باحث عن عمل" },
+  { value: "أخرى", label: "أخرى" },
+];
+
 interface PreChatFormProps {
-  onSubmit: (data: { name: string; phone: string; sessionId: string }) => void;
+  onSubmit: (data: { name: string; phone: string; role: string; sessionId: string }) => void;
   title?: string;
+  extraFields?: React.ReactNode;
 }
 
-const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormProps) => {
+const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ", extraFields }: PreChatFormProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("");
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
 
   const handleSubmit = () => {
-    if (!name.trim() || !phone.trim()) return;
+    if (!name.trim() || !phone.trim() || !role) return;
     if (!consent) {
       setConsentError(true);
       return;
     }
     setConsentError(false);
     const sessionId = uuidv4();
-    onSubmit({ name: name.trim(), phone: phone.trim(), sessionId });
+    onSubmit({ name: name.trim(), phone: phone.trim(), role, sessionId });
   };
 
   return (
@@ -58,6 +68,20 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
           <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
       </div>
+      <div>
+        <label className="block font-arabic text-xs text-muted-foreground mb-1">الصفة / نوع الجهة *</label>
+        <Select value={role} onValueChange={setRole}>
+          <SelectTrigger className="text-right font-arabic">
+            <SelectValue placeholder="اختر صفتك" />
+          </SelectTrigger>
+          <SelectContent>
+            {ROLES.map((r) => (
+              <SelectItem key={r.value} value={r.value} className="font-arabic">{r.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {extraFields}
       <div className="flex items-start gap-2">
         <Checkbox
           id="pdpl-consent"
@@ -78,7 +102,7 @@ const PreChatForm = ({ onSubmit, title = "قبل أن نبدأ" }: PreChatFormPr
       )}
       <Button
         onClick={handleSubmit}
-        disabled={!name.trim() || !phone.trim()}
+        disabled={!name.trim() || !phone.trim() || !role}
         className="w-full bg-gold-shimmer text-primary-foreground font-arabic glow-gold"
       >
         بدء المحادثة
