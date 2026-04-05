@@ -357,6 +357,7 @@ serve(async (req) => {
           message: m.content,
           consultation_id: consultation_id || null,
           session_id: session_id || null,
+          agent_type: agentType,
         }));
 
         const { error: chatLogError } = await supabase.from("chat_logs").insert(logRows);
