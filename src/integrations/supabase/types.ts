@@ -190,6 +190,7 @@ export type Database = {
       }
       consultations: {
         Row: {
+          agent_type: string | null
           ai_response: string | null
           created_at: string
           id: string
@@ -198,10 +199,16 @@ export type Database = {
           reference_number: string
           status: string
           summary: string | null
+          survey_ease: number | null
+          survey_needs: string | null
+          survey_quality: number | null
           updated_at: string
           visitor_name: string | null
+          visitor_phone: string | null
+          visitor_role: string | null
         }
         Insert: {
+          agent_type?: string | null
           ai_response?: string | null
           created_at?: string
           id?: string
@@ -210,10 +217,16 @@ export type Database = {
           reference_number: string
           status?: string
           summary?: string | null
+          survey_ease?: number | null
+          survey_needs?: string | null
+          survey_quality?: number | null
           updated_at?: string
           visitor_name?: string | null
+          visitor_phone?: string | null
+          visitor_role?: string | null
         }
         Update: {
+          agent_type?: string | null
           ai_response?: string | null
           created_at?: string
           id?: string
@@ -222,8 +235,13 @@ export type Database = {
           reference_number?: string
           status?: string
           summary?: string | null
+          survey_ease?: number | null
+          survey_needs?: string | null
+          survey_quality?: number | null
           updated_at?: string
           visitor_name?: string | null
+          visitor_phone?: string | null
+          visitor_role?: string | null
         }
         Relationships: []
       }
