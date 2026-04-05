@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { maskName, maskPhone } from "@/lib/piiMask";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,7 +123,7 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, contactMessages, load
                     <StatusSelect value={app.status || "pending"} table="job_applications" id={app.id} />
                   </div>
                   <div className="text-right">
-                    <h4 className="font-bold font-arabic text-foreground">{app.full_name}</h4>
+                    <h4 className="font-bold font-arabic text-foreground">{maskName(app.full_name)}</h4>
                     <p className="text-sm text-muted-foreground font-arabic">{app.city} • {app.department}</p>
                   </div>
                 </div>
@@ -191,7 +192,7 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, contactMessages, load
                     <StatusSelect value={c.status || "open"} table="consultations" id={c.id} />
                   </div>
                   <div className="text-right">
-                    <h4 className="font-bold font-arabic text-foreground">{c.visitor_name || "زائر"}</h4>
+                    <h4 className="font-bold font-arabic text-foreground">{maskName(c.visitor_name) || "زائر"}</h4>
                     <p className="text-sm text-muted-foreground font-arabic">{c.issue_category}</p>
                     {c.summary && <p className="text-sm text-muted-foreground font-arabic mt-1 line-clamp-2">{c.summary}</p>}
                   </div>
@@ -216,9 +217,9 @@ const AdminInbox = ({ jobApps, companyReqs, consultations, contactMessages, load
                     <StatusSelect value={msg.status || "pending"} table="contact_requests" id={msg.id} />
                   </div>
                   <div className="text-right">
-                    <h4 className="font-bold font-arabic text-foreground">{msg.full_name}</h4>
-                    {msg.email && <p className="text-sm text-muted-foreground">{msg.email}</p>}
-                    {msg.phone && <p className="text-sm text-muted-foreground" dir="ltr">{msg.phone}</p>}
+                     <h4 className="font-bold font-arabic text-foreground">{maskName(msg.full_name)}</h4>
+                     {msg.email && <p className="text-sm text-muted-foreground">{maskPhone(msg.email)}</p>}
+                     {msg.phone && <p className="text-sm text-muted-foreground" dir="ltr">{maskPhone(msg.phone)}</p>}
                   </div>
                 </div>
                 <p className="text-sm font-arabic text-foreground bg-secondary/30 rounded-lg p-3 mb-3">{msg.reason}</p>

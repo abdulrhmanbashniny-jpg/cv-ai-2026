@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { maskName } from "@/lib/piiMask";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,7 +97,7 @@ const AdminChatHistory = ({ chatLogs, consultations, onRefresh }: AdminChatHisto
                         {logs.length} رسالة
                       </Badge>
                       <span className="font-arabic text-sm font-medium text-foreground">
-                        {info?.visitor_name || "زائر"}
+                        {maskName(info?.visitor_name) || "زائر"}
                       </span>
                     </div>
                     {info && (

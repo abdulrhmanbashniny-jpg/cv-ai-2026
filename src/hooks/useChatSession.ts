@@ -236,6 +236,21 @@ export function useChatSession({ agentType, disclaimerAr, disclaimerEn, greeting
         }
       );
       const data = await resp.json();
+      
+      // STANDARDIZED ERROR HANDLING: Check for failures
+      if (!resp.ok || data.success === false) {
+        const errorMsg = data.error || "Unknown error";
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: lang === "ar"
+            ? `❌ **خطأ:** فشل إنهاء المحادثة.\n\n${errorMsg}\n\nيرجى المحاولة مرة أخرى.`
+            : `❌ **Error:** Failed to end conversation.\n\n${errorMsg}\n\nPlease try again.` },
+        ]);
+        setEnding(false);
+        return;
+      }
+
+      // SINGLE REF ID: Use the one from the server (single source of truth)
       const refId = data.ref_id || "";
       const summary = data.summary || "";
       setEndResult({ refId, summary });
@@ -253,7 +268,7 @@ export function useChatSession({ agentType, disclaimerAr, disclaimerEn, greeting
     } catch {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: t("عذراً، حدث خطأ أثناء إنهاء المحادثة.", "Sorry, error ending conversation.") },
+        { role: "assistant", content: t("❌ عذراً، حدث خطأ أثناء إنهاء المحادثة. يرجى المحاولة مرة أخرى.", "❌ Sorry, error ending conversation. Please try again.") },
       ]);
     } finally {
       setEnding(false);
