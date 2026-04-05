@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { maskName, maskPhone } from "@/lib/piiMask";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
