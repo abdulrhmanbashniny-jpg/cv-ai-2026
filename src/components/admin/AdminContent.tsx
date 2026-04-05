@@ -21,6 +21,8 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
   const [showCvEn, setShowCvEn] = useState(settings.show_cv_en !== "false");
   const [footerEmail, setFooterEmail] = useState(settings.footer_email || "info@bashniny.com");
   const [footerPhone, setFooterPhone] = useState(settings.footer_phone || "");
+  const [cvArUrl, setCvArUrl] = useState(settings.cv_ar_url || "/cv/CV-Ar.docx");
+  const [cvEnUrl, setCvEnUrl] = useState(settings.cv_en_url || "/cv/CV-En.docx");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [heroImageUrl, setHeroImageUrl] = useState(settings.hero_image_url || "");
@@ -57,6 +59,8 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
       { setting_key: "footer_email", setting_value: footerEmail },
       { setting_key: "footer_phone", setting_value: footerPhone },
       { setting_key: "hero_image_url", setting_value: heroImageUrl },
+      { setting_key: "cv_ar_url", setting_value: cvArUrl },
+      { setting_key: "cv_en_url", setting_value: cvEnUrl },
     ]);
     setSaving(false);
     toast({ title: "تم", description: "تم حفظ إعدادات المحتوى" });
@@ -135,12 +139,16 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
               </div>
               <span className="font-arabic text-sm font-medium text-foreground">السيرة الذاتية - عربي</span>
             </div>
+            <div className="mb-2">
+              <label className="block font-arabic text-xs text-muted-foreground mb-1">رابط الملف (URL أو مسار)</label>
+              <Input value={cvArUrl} onChange={(e) => setCvArUrl(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="/cv/CV-Ar.docx" />
+            </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => window.open("/cv/CV-Ar.docx")}>
+              <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => window.open(cvArUrl)}>
                 <Eye className="h-3 w-3" />معاينة
               </Button>
               <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" asChild>
-                <a href="/cv/CV-Ar.docx" download><Download className="h-3 w-3" />تحميل</a>
+                <a href={cvArUrl} download><Download className="h-3 w-3" />تحميل</a>
               </Button>
             </div>
           </div>
@@ -156,12 +164,16 @@ const AdminContent = ({ settings, onSave }: AdminContentProps) => {
               </div>
               <span className="font-arabic text-sm font-medium text-foreground">السيرة الذاتية - English</span>
             </div>
+            <div className="mb-2">
+              <label className="block font-arabic text-xs text-muted-foreground mb-1">رابط الملف (URL أو مسار)</label>
+              <Input value={cvEnUrl} onChange={(e) => setCvEnUrl(e.target.value)} className="font-mono text-sm" dir="ltr" placeholder="/cv/CV-En.docx" />
+            </div>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => window.open("/cv/CV-En.docx")}>
+              <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" onClick={() => window.open(cvEnUrl)}>
                 <Eye className="h-3 w-3" />معاينة
               </Button>
               <Button size="sm" variant="outline" className="text-xs font-arabic gap-1" asChild>
-                <a href="/cv/CV-En.docx" download><Download className="h-3 w-3" />تحميل</a>
+                <a href={cvEnUrl} download><Download className="h-3 w-3" />تحميل</a>
               </Button>
             </div>
           </div>
